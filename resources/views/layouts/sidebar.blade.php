@@ -1,4 +1,4 @@
-<aside class="w-48 bg-white border-r border-gray-200 hidden sm:block">
+<aside class="w-48 bg-white border-r border-gray-200">
     <div class="p-4">
         <nav class="space-y-2">
             <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('dashboard') ? 'bg-gray-200' : '' }}">
