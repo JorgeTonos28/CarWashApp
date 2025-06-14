@@ -13,9 +13,16 @@ class ProductController extends Controller
         $this->middleware(['auth', 'role:admin'])->except('index');
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::orderBy('name')->get();
+        $query = Product::query();
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        $products = $query->orderBy('name')->get();
+
         return view('products.index', compact('products'));
     }
 

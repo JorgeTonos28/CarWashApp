@@ -14,6 +14,19 @@
             <a href="{{ route('petty-cash.create') }}" class="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600">Nuevo Gasto</a>
         </div>
 
+        <div class="mb-4">
+            <form method="GET" class="flex flex-wrap items-end gap-4">
+                <div>
+                    <label class="block text-sm text-gray-700">Desde</label>
+                    <input type="date" name="start_date" value="{{ request('start_date') }}" class="form-input mt-1 rounded" onchange="this.form.submit()">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-700">Hasta</label>
+                    <input type="date" name="end_date" value="{{ request('end_date') }}" class="form-input mt-1 rounded" onchange="this.form.submit()">
+                </div>
+            </form>
+        </div>
+
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
             <table class="min-w-full table-auto border">
                 <thead class="bg-gray-200">

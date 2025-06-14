@@ -37,6 +37,12 @@
             </div>
         @endif
 
+        <div class="mb-4">
+            <form method="GET">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Buscar por nombre" class="form-input rounded" oninput="this.form.submit()">
+            </form>
+        </div>
+
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
             <table class="min-w-full table-auto border">
                 <thead class="bg-gray-200">
