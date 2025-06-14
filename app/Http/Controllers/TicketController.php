@@ -10,6 +10,7 @@ use App\Models\InventoryMovement;
 use App\Models\VehicleType;
 use App\Models\Washer;
 use App\Models\Drink;
+use App\Models\Discount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -153,6 +154,20 @@ class TicketController extends Controller
                 $priceRow = $service->prices()->where('vehicle_type_id', $vehicleType->id)->first();
                 $price = $priceRow ? $priceRow->price : 0;
 
+                $discount = Discount::where('discountable_type', Service::class)
+                    ->where('discountable_id', $serviceId)
+                    ->where('active', true)
+                    ->where(function($q){ $q->whereNull('end_at')->orWhere('end_at','>', now()); })
+                    ->first();
+                if ($discount && $discount->end_at && $discount->end_at->isPast()) {
+                    $discount->update(['active' => false]);
+                    $discount = null;
+                }
+                if ($discount) {
+                    $disc = $discount->amount_type === 'fixed' ? $discount->amount : ($price * $discount->amount / 100);
+                    $price = max(0, $price - $disc);
+                }
+
                 $details[] = [
                     'type' => 'service',
                     'service_id' => $serviceId,
@@ -170,14 +185,28 @@ class TicketController extends Controller
                 foreach ($request->product_ids as $index => $productId) {
                     $product = Product::find($productId);
                     $qty = $request->quantities[$index];
-                    $subtotal = $product->price * $qty;
+                    $price = $product->price;
+                    $discount = Discount::where('discountable_type', Product::class)
+                        ->where('discountable_id', $productId)
+                        ->where('active', true)
+                        ->where(function($q){ $q->whereNull('end_at')->orWhere('end_at','>', now()); })
+                        ->first();
+                    if ($discount && $discount->end_at && $discount->end_at->isPast()) {
+                        $discount->update(['active' => false]);
+                        $discount = null;
+                    }
+                    if ($discount) {
+                        $disc = $discount->amount_type === 'fixed' ? $discount->amount : ($price * $discount->amount / 100);
+                        $price = max(0, $price - $disc);
+                    }
+                    $subtotal = $price * $qty;
 
                     $details[] = [
                         'type' => 'product',
                         'service_id' => null,
                         'product_id' => $productId,
                         'quantity' => $qty,
-                        'unit_price' => $product->price,
+                        'unit_price' => $price,
                         'subtotal' => $subtotal,
                     ];
 
