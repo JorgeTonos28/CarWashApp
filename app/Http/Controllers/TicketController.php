@@ -19,10 +19,24 @@ class TicketController extends Controller
         $this->middleware(['auth', 'role:admin,cajero']);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $tickets = Ticket::latest()->take(10)->get();
-    
+        $query = Ticket::query();
+
+        if ($request->start_date) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        }
+
+        if ($request->end_date) {
+            $query->whereDate('created_at', '<=', $request->end_date);
+        }
+
+        $tickets = $query->latest()->take(10)->get();
+
+        if ($request->ajax()) {
+            return view('tickets.partials.table', compact('tickets'));
+        }
+
         return view('tickets.index', [
             'tickets' => $tickets
         ]);

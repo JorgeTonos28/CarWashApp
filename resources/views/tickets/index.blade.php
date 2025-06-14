@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div x-data="ticketFilter()" x-init="init()" class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
 
         @if (session('success'))
             <div class="mb-4 font-medium text-sm text-green-600">{{ session('success') }}</div>
@@ -15,33 +15,41 @@
             <a href="{{ route('tickets.create') }}" class="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600">Nuevo Ticket</a>
         </div>
 
-        <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
-            <table class="min-w-full table-auto border">
-                <thead class="bg-gray-200">
-                    <tr>
-                        <th class="border px-4 py-2">ID</th>
-                        <th class="border px-4 py-2">Vehículo</th>
-                        <th class="border px-4 py-2">Lavador</th>
-                        <th class="border px-4 py-2">Total</th>
-                        <th class="border px-4 py-2">Pago</th>
-                        <th class="border px-4 py-2">Cambio</th>
-                        <th class="border px-4 py-2">Fecha</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($tickets as $ticket)
-                        <tr class="border-t">
-                            <td class="px-4 py-2">{{ $ticket->id }}</td>
-                            <td class="px-4 py-2">{{ $ticket->vehicleType->name }}</td>
-                            <td class="px-4 py-2">{{ $ticket->washer->name }}</td>
-                            <td class="px-4 py-2">RD$ {{ number_format($ticket->total_amount, 2) }}</td>
-                            <td class="px-4 py-2">RD$ {{ number_format($ticket->paid_amount, 2) }}</td>
-                            <td class="px-4 py-2">RD$ {{ number_format($ticket->change, 2) }}</td>
-                            <td class="px-4 py-2">{{ $ticket->created_at->format('d/m/Y H:i') }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+        <div class="mb-4">
+            <form method="GET" x-ref="form" class="flex flex-wrap items-end gap-4">
+                <div>
+                    <label class="block text-sm text-gray-700">Desde</label>
+                    <input type="date" name="start_date" x-model="start_date" class="form-input mt-1 rounded">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-700">Hasta</label>
+                    <input type="date" name="end_date" x-model="end_date" class="form-input mt-1 rounded">
+                </div>
+            </form>
         </div>
+
+        <div x-ref="table">
+            @include('tickets.partials.table', ['tickets' => $tickets])
+        </div>
+        <script>
+            function ticketFilter() {
+                return {
+                    start_date: '{{ request('start_date') }}',
+                    end_date: '{{ request('end_date') }}',
+                    fetchData() {
+                        axios.get('{{ route('tickets.index') }}', {
+                            params: {
+                                start_date: this.start_date,
+                                end_date: this.end_date
+                            }
+                        }).then(res => { this.$refs.table.innerHTML = res.data; });
+                    },
+                    init() {
+                        this.$watch('start_date', () => this.fetchData());
+                        this.$watch('end_date', () => this.fetchData());
+                    }
+                }
+            }
+        </script>
     </div>
 </x-app-layout>

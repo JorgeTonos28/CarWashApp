@@ -31,6 +31,10 @@ class InventoryMovementController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        if ($request->ajax()) {
+            return view('inventory.partials.table', compact('movements'));
+        }
+
         return view('inventory.index', compact('movements'));
     }
 

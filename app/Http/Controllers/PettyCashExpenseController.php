@@ -24,6 +24,10 @@ class PettyCashExpenseController extends Controller
             ->latest()
             ->get();
 
+        if ($request->ajax()) {
+            return view('petty_cash.partials.table', compact('expenses'));
+        }
+
         return view('petty_cash.index', compact('expenses'));
     }
 

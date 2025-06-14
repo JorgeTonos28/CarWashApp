@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div x-data="inventoryFilter()" x-init="init()" class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
         @if (session('success'))
             <div class="mb-4 font-medium text-sm text-green-600">
                 {{ session('success') }}
@@ -19,48 +19,57 @@
         </div>
 
         <div class="mb-4">
-            <form method="GET" class="flex flex-wrap items-end gap-4">
+            <form method="GET" x-ref="form" class="flex flex-wrap items-end gap-4">
                 <div>
                     <label class="block text-sm text-gray-700">Producto</label>
-                    <input type="text" name="product_name" value="{{ request('product_name') }}" class="form-input mt-1 rounded" placeholder="Nombre" oninput="this.form.submit()">
+                    <input type="text" name="product_name" x-model="product_name" class="form-input mt-1 rounded" placeholder="Nombre">
                 </div>
                 <div>
                     <label class="block text-sm text-gray-700">Desde</label>
-                    <input type="date" name="start_date" value="{{ request('start_date') }}" class="form-input mt-1 rounded" onchange="this.form.submit()">
+                    <input type="date" name="start_date" x-model="start_date" class="form-input mt-1 rounded">
                 </div>
                 <div>
                     <label class="block text-sm text-gray-700">Hasta</label>
-                    <input type="date" name="end_date" value="{{ request('end_date') }}" class="form-input mt-1 rounded" onchange="this.form.submit()">
+                    <input type="date" name="end_date" x-model="end_date" class="form-input mt-1 rounded">
                 </div>
             </form>
         </div>
 
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <table class="min-w-full table-auto border">
-                <thead class="bg-gray-200">
-                    <tr>
-                        <th class="px-4 py-2 border">Fecha</th>
-                        <th class="px-4 py-2 border">Producto</th>
-                        <th class="px-4 py-2 border">Tipo</th>
-                        <th class="px-4 py-2 border">Cantidad</th>
-                        <th class="px-4 py-2 border">Usuario</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($movements as $move)
-                        <tr class="border-t">
-                            <td class="px-4 py-2">{{ $move->created_at->format('d/m/Y H:i') }}</td>
-                            <td class="px-4 py-2">{{ $move->product->name }}</td>
-                            <td class="px-4 py-2">{{ ucfirst($move->movement_type) }}</td>
-                            <td class="px-4 py-2">{{ $move->quantity }}</td>
-                            <td class="px-4 py-2">{{ optional($move->user)->name }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+        <div x-ref="table">
+            @include('inventory.partials.table', ['movements' => $movements])
         </div>
-        <div class="mt-4">
-            {{ $movements->links() }}
-        </div>
+        <script>
+            function inventoryFilter() {
+                return {
+                    product_name: '{{ request('product_name') }}',
+                    start_date: '{{ request('start_date') }}',
+                    end_date: '{{ request('end_date') }}',
+                    fetchData(page = 1) {
+                        axios.get('{{ route('inventory.index') }}', {
+                            params: {
+                                page,
+                                product_name: this.product_name,
+                                start_date: this.start_date,
+                                end_date: this.end_date
+                            }
+                        }).then(res => { this.$refs.table.innerHTML = res.data; });
+                    },
+                    init() {
+                        this.$watch('product_name', () => this.fetchData());
+                        this.$watch('start_date', () => this.fetchData());
+                        this.$watch('end_date', () => this.fetchData());
+
+                        this.$refs.table.addEventListener('click', (e) => {
+                            if (e.target.tagName === 'A' && e.target.closest('ul')) {
+                                e.preventDefault();
+                                const url = new URL(e.target.href);
+                                const page = url.searchParams.get('page') || 1;
+                                this.fetchData(page);
+                            }
+                        });
+                    }
+                }
+            }
+        </script>
     </div>
 </x-app-layout>

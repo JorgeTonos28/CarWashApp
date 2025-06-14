@@ -23,6 +23,10 @@ class ProductController extends Controller
 
         $products = $query->orderBy('name')->get();
 
+        if ($request->ajax()) {
+            return view('products.partials.table', compact('products'));
+        }
+
         return view('products.index', compact('products'));
     }
 
