@@ -16,6 +16,7 @@ use App\Models\Discount;
 use App\Models\BankAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class TicketController extends Controller
 {
@@ -901,6 +902,7 @@ class TicketController extends Controller
             'payment_method' => 'required|in:efectivo,tarjeta,transferencia,mixto',
             'bank_account_id' => 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id',
             'paid_amount' => 'required|numeric|min:0',
+            'payment_date' => 'required|date',
         ]);
 
         if ($request->paid_amount < $ticket->total_amount) {
@@ -913,7 +915,7 @@ class TicketController extends Controller
             'paid_amount' => $request->paid_amount,
             'change' => $request->paid_amount - $ticket->total_amount,
             'pending' => false,
-            'paid_at' => now(),
+            'paid_at' => Carbon::parse($request->payment_date),
         ]);
 
         return redirect()->route('tickets.index')->with('success', 'Ticket pagado correctamente.');

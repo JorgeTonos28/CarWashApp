@@ -19,9 +19,10 @@
                 @method('DELETE')
                 <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Eliminar</button>
             </form>
-            <form action="{{ route('washers.pay', $washer) }}" method="POST">
+            <form action="{{ route('washers.pay', $washer) }}" method="POST" onsubmit="return confirm('Pagar a {{ $washer->name }} el '+this.payment_date.value+' por RD$ {{ number_format($washer->pending_amount,2) }}?')">
                 @csrf
-                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Marcar Pago</button>
+                <input type="date" name="payment_date" value="{{ now()->toDateString() }}" class="form-input">
+                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 ms-2">Marcar Pago</button>
             </form>
         </div>
 

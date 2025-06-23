@@ -13,14 +13,16 @@
                 <a href="{{ route('washers.create') }}" class="btn-primary">
                     Nuevo Lavador
                 </a>
-                <form action="{{ route('washers.payAll') }}" method="POST">
+                <form action="{{ route('washers.payAll') }}" method="POST" onsubmit="return confirm('Pagar todos los lavadores el '+this.payment_date.value+'?')">
                     @csrf
-                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pagar Todos</button>
+                    <input type="date" name="payment_date" value="{{ now()->toDateString() }}" class="form-input">
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 ms-2">Pagar Todos</button>
                 </form>
             </div>
 
             <div class="mb-4 bg-white p-4 shadow sm:rounded-lg">
                 <p>Total adeudado: <strong>RD$ {{ number_format($pendingTotal, 2) }}</strong></p>
+                <p>Pendiente de asignar: <strong>RD$ {{ number_format($unassignedTotal, 2) }}</strong></p>
             </div>
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg max-h-96 overflow-y-auto">
