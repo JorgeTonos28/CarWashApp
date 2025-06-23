@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Washer;
 use App\Models\WasherPayment;
 use App\Models\WasherMovement;
+use App\Models\Ticket;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class WasherController extends Controller
 {
@@ -18,7 +20,11 @@ class WasherController extends Controller
     {
         $washers = Washer::orderBy('name')->get();
         $pendingTotal = Washer::where('pending_amount', '>', 0)->sum('pending_amount');
-        return view('washers.index', compact('washers','pendingTotal'));
+        $unassignedTotal = \App\Models\Ticket::where('pending', true)
+            ->where('canceled', false)
+            ->where('washer_pending_amount', '>', 0)
+            ->sum('washer_pending_amount');
+        return view('washers.index', compact('washers','pendingTotal','unassignedTotal'));
     }
 
     public function create()
@@ -161,15 +167,19 @@ class WasherController extends Controller
         ]);
     }
 
-    public function pay(Washer $washer)
+    public function pay(Request $request, Washer $washer)
     {
         if ($washer->pending_amount <= 0) {
             return back()->with('success', 'No hay monto pendiente.');
         }
 
+        $request->validate([
+            'payment_date' => 'required|date',
+        ]);
+
         WasherPayment::create([
             'washer_id' => $washer->id,
-            'payment_date' => now(),
+            'payment_date' => Carbon::parse($request->payment_date),
             'total_washes' => intval($washer->pending_amount / 100),
             'amount_paid' => $washer->pending_amount,
         ]);
@@ -179,14 +189,18 @@ class WasherController extends Controller
         return back()->with('success', 'Pago registrado correctamente.');
     }
 
-    public function payAll()
+    public function payAll(Request $request)
     {
+        $request->validate([
+            'payment_date' => 'required|date',
+        ]);
+
         $washers = Washer::where('pending_amount', '>', 0)->get();
 
         foreach ($washers as $washer) {
             WasherPayment::create([
                 'washer_id' => $washer->id,
-                'payment_date' => now(),
+                'payment_date' => Carbon::parse($request->payment_date),
                 'total_washes' => intval($washer->pending_amount / 100),
                 'amount_paid' => $washer->pending_amount,
             ]);
