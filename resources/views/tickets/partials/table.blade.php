@@ -75,6 +75,10 @@
                     <option value="mixto">Mixto</option>
                 </select>
             </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Fecha de Pago</label>
+                <input type="date" name="payment_date" value="{{ now()->toDateString() }}" class="form-input w-full" required>
+            </div>
             <div x-show="method === 'transferencia'">
                 <label class="block text-sm font-medium text-gray-700">Cuenta Bancaria</label>
                 <select name="bank_account_id" class="form-select w-full">
