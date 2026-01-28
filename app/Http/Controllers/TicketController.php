@@ -563,8 +563,12 @@ class TicketController extends Controller
 
             DB::commit();
 
-            return redirect()->route('tickets.index')
+            $redirect = redirect()->route('tickets.index')
                 ->with('success', 'Ticket generado correctamente.');
+            if (! $pending) {
+                $redirect->with('print_ticket_id', $ticket->id);
+            }
+            return $redirect;
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1056,7 +1060,23 @@ class TicketController extends Controller
             'paid_at' => $ticket->created_at,
         ]);
 
-        return redirect()->route('tickets.index')->with('success', 'Ticket pagado correctamente.');
+        return redirect()
+            ->route('tickets.index')
+            ->with('success', 'Ticket pagado correctamente.')
+            ->with('print_ticket_id', $ticket->id);
+    }
+
+    public function print($id)
+    {
+        $ticket = Ticket::with([
+            'details.service',
+            'details.product',
+            'details.drink',
+            'vehicle',
+            'washer',
+        ])->findOrFail($id);
+
+        return view('tickets.print', compact('ticket'));
     }
 
     public function cancel(Request $request, Ticket $ticket)
@@ -1814,7 +1834,11 @@ class TicketController extends Controller
 
             DB::commit();
 
-            return redirect()->route('tickets.index')->with('success', 'Ticket generado correctamente.');
+            $redirect = redirect()->route('tickets.index')->with('success', 'Ticket generado correctamente.');
+            if (! $pending) {
+                $redirect->with('print_ticket_id', $ticket->id);
+            }
+            return $redirect;
 
         } catch (\Exception $e) {
             DB::rollBack();

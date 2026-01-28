@@ -11,5 +11,6 @@ class AppearanceSetting extends Model
     protected $casts = [
         'logo_updated_at' => 'datetime',
         'login_logo_updated_at' => 'datetime',
+        'qr_code_updated_at' => 'datetime',
     ];
 }

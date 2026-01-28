@@ -43,12 +43,33 @@
                 </div>
             </div>
 
-            <footer class="bg-white border-t py-4 text-sm text-gray-600">
-                <div class="max-w-7xl mx-auto px-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
-                    <span>&copy; {{ date('Y') }} {{ $appearance->business_name ?? 'CarWash App' }}. Todos los derechos reservados.</span>
-                    <img src="{{ asset('images/signature.png') }}" alt="Firma" class="h-10">
-                </div>
-            </footer>
-        </div>
-    </body>
+        <footer class="bg-white border-t py-4 text-sm text-gray-600">
+            <div class="max-w-7xl mx-auto px-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
+                <span>&copy; {{ date('Y') }} {{ $appearance->business_name ?? 'CarWash App' }}. Todos los derechos reservados.</span>
+                <img src="{{ asset('images/signature.png') }}" alt="Firma" class="h-10">
+            </div>
+        </footer>
+    </div>
+
+    @if (session('print_ticket_id'))
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                let ticketId = "{{ session('print_ticket_id') }}";
+                let url = "{{ url('/tickets/print') }}/" + ticketId;
+
+                let printWindow = window.open(
+                    url,
+                    'TicketPrint',
+                    'height=600,width=400,top=100,left=100,resizable=yes,scrollbars=yes'
+                );
+
+                if (printWindow) {
+                    printWindow.focus();
+                } else {
+                    alert("Por favor habilita las ventanas emergentes para imprimir el ticket automáticamente.");
+                }
+            });
+        </script>
+    @endif
+</body>
 </html>

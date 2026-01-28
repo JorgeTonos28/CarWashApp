@@ -21,8 +21,12 @@ class AppearanceController extends Controller
     {
         $request->validate([
             'business_name' => 'required|string|max:255',
+            'business_address' => 'nullable|string|max:500',
+            'tax_id' => 'nullable|string|max:50',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'login_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'qr_code' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'qr_description' => 'nullable|string|max:50',
         ]);
 
         $settings = AppearanceSetting::firstOrCreate([], [
@@ -31,6 +35,9 @@ class AppearanceController extends Controller
 
         $data = [
             'business_name' => $request->business_name,
+            'business_address' => $request->business_address,
+            'tax_id' => $request->tax_id,
+            'qr_description' => $request->qr_description,
         ];
 
         if ($request->hasFile('logo')) {
@@ -43,8 +50,13 @@ class AppearanceController extends Controller
             $data['login_logo_updated_at'] = now();
         }
 
+        if ($request->hasFile('qr_code')) {
+            $request->file('qr_code')->storeAs('public/images', 'qr_code.png');
+            $data['qr_code_updated_at'] = now();
+        }
+
         $settings->update($data);
 
-        return back()->with('success', 'Apariencia actualizada.');
+        return back()->with('success', 'Configuración actualizada.');
     }
 }
