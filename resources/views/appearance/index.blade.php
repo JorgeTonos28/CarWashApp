@@ -42,7 +42,7 @@
                             @if(isset($appearance) && $appearance->qr_code_updated_at)
                                 <div class="mt-2">
                                     <p class="text-xs text-gray-500">QR Actual:</p>
-                                    <img src="{{ asset('storage/images/qr_code.png') }}?v={{ $appearance->qr_code_updated_at->timestamp }}" class="w-24 h-24 object-contain border" alt="QR Actual">
+                                    <img src="{{ asset('images/qr_code.png') }}?v={{ $appearance->qr_code_updated_at->timestamp }}" class="w-24 h-24 object-contain border" alt="QR Actual">
                                 </div>
                             @endif
                         </div>

@@ -134,7 +134,7 @@
 
         @if(isset($appearance) && $appearance->qr_code_updated_at)
             <div class="qr-container">
-                <img src="{{ asset('storage/images/qr_code.png') }}?v={{ $appearance->qr_code_updated_at->timestamp }}" class="qr-img" alt="QR">
+                <img src="{{ asset('images/qr_code.png') }}?v={{ $appearance->qr_code_updated_at->timestamp }}" class="qr-img" alt="QR">
                 <div class="qr-text">{{ $appearance->qr_description ?? 'Escanéame' }}</div>
             </div>
         @endif

@@ -57,14 +57,10 @@
                 let ticketId = "{{ session('print_ticket_id') }}";
                 let url = "{{ url('/tickets/print') }}/" + ticketId;
 
-                let printWindow = window.open(
-                    url,
-                    'TicketPrint',
-                    'height=600,width=400,top=100,left=100,resizable=yes,scrollbars=yes'
-                );
+                let printTab = window.open(url, '_blank');
 
-                if (printWindow) {
-                    printWindow.focus();
+                if (printTab) {
+                    printTab.focus();
                 } else {
                     alert("Por favor habilita las ventanas emergentes para imprimir el ticket automáticamente.");
                 }

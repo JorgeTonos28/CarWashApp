@@ -63,6 +63,10 @@ Alpine.data('filterTable', (url, extra = {}) => ({
             }
         }
         window.location = `${this.editBase}/${this.selected}/edit`;
+    },
+    openPrintTab() {
+        if (!this.selected || !this.printBase) return;
+        window.open(`${this.printBase}/${this.selected}`, '_blank');
     }
 }));
 

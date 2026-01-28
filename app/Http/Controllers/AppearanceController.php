@@ -51,7 +51,11 @@ class AppearanceController extends Controller
         }
 
         if ($request->hasFile('qr_code')) {
-            $request->file('qr_code')->storeAs('public/images', 'qr_code.png');
+            $dir = public_path('images');
+            if (! file_exists($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            $request->file('qr_code')->move($dir, 'qr_code.png');
             $data['qr_code_updated_at'] = now();
         }
 
