@@ -7,17 +7,21 @@
 
     <div class="py-4">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 bg-white p-6 shadow sm:rounded-lg">
-            <form method="POST" action="{{ route('appearance.store') }}" enctype="multipart/form-data" class="space-y-6">
+            <form method="POST" action="{{ route('appearance.update') }}" enctype="multipart/form-data" class="space-y-6">
                 @csrf
                 <div>
-                    <label class="block font-medium text-sm text-gray-700">Logo</label>
+                    <label class="block font-medium text-sm text-gray-700">Nombre del negocio</label>
+                    <input type="text" name="business_name" class="form-input mt-1 w-full" value="{{ old('business_name', $appearance->business_name ?? 'CarWash App') }}" required>
+                </div>
+                <div>
+                    <label class="block font-medium text-sm text-gray-700">Logo general</label>
                     <input type="file" name="logo" class="form-input mt-1">
                     <p class="text-xs text-gray-500 mt-1">Tamaño recomendado: 200x50 px.</p>
                 </div>
                 <div>
-                    <label class="block font-medium text-sm text-gray-700">Favicon</label>
-                    <input type="file" name="favicon" class="form-input mt-1">
-                    <p class="text-xs text-gray-500 mt-1">Tamaño recomendado: 32x32 px.</p>
+                    <label class="block font-medium text-sm text-gray-700">Logo de inicio de sesión</label>
+                    <input type="file" name="login_logo" class="form-input mt-1">
+                    <p class="text-xs text-gray-500 mt-1">Dimensiones recomendadas: 500x500px.</p>
                 </div>
                 <div class="flex justify-end">
                     <button type="submit" class="btn-primary">Guardar</button>

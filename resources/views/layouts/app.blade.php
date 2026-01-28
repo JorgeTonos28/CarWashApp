@@ -18,32 +18,34 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <div x-data="{ sidebarOpen: false }" @open-sidebar.window="sidebarOpen = true" @close-sidebar.window="sidebarOpen = false" class="min-h-screen bg-gray-100 flex flex-col md:flex-row">
-            <div x-show="sidebarOpen" x-cloak class="fixed inset-0 bg-black/50 z-30 md:hidden" @click="sidebarOpen = false"></div>
-            @include('layouts.sidebar')
+        <div class="min-h-screen bg-gray-100 flex flex-col">
+            <div x-data="{ sidebarOpen: false }" @open-sidebar.window="sidebarOpen = true" @close-sidebar.window="sidebarOpen = false" class="flex flex-1 flex-col md:flex-row">
+                <div x-show="sidebarOpen" x-cloak class="fixed inset-0 bg-black/50 z-30 md:hidden" @click="sidebarOpen = false"></div>
+                @include('layouts.sidebar')
 
-            <div class="flex-1">
-                @include('layouts.navigation')
-                @include('partials.flash-messages')
+                <div class="flex flex-1 flex-col">
+                    @include('layouts.navigation')
+                    @include('partials.flash-messages')
 
-            <!-- Page Heading -->
-            @if (isset($header))
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endif
+                    <!-- Page Heading -->
+                    @if (isset($header))
+                        <header class="bg-white shadow">
+                            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                                {{ $header }}
+                            </div>
+                        </header>
+                    @endif
 
-                <!-- Page Content -->
-                <main>
-                    {{ $slot }}
-                </main>
-                <footer class="bg-gray-100 text-sm px-4 py-2 flex justify-between items-center">
-                    <span>&copy; {{ date('Y') }} 3Glam</span>
-                    <img src="{{ asset('images/signature.png') }}" alt="Firma" class="h-10">
-                </footer>
+                    <!-- Page Content -->
+                    <main class="flex-grow">
+                        {{ $slot }}
+                    </main>
+                </div>
             </div>
+
+            <footer class="bg-white border-t py-4 text-center text-sm text-gray-600">
+                &copy; {{ date('Y') }} {{ $appearance->business_name ?? 'CarWash App' }}. Todos los derechos reservados.
+            </footer>
         </div>
     </body>
 </html>

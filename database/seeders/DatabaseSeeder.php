@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             BankAccountSeeder::class,
             UserSeeder::class,
+            CommissionSettingSeeder::class,
+            AppearanceSettingSeeder::class,
         ]);
     }
 }
