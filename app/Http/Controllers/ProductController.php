@@ -57,7 +57,7 @@ class ProductController extends Controller
         ]);
 
         $data = $request->only('name', 'price', 'stock', 'low_stock_threshold');
-        if ($data['low_stock_threshold'] === '' || $data['low_stock_threshold'] === null) {
+        if (!array_key_exists('low_stock_threshold', $data) || $data['low_stock_threshold'] === '' || $data['low_stock_threshold'] === null) {
             $data['low_stock_threshold'] = null;
         }
 
@@ -91,7 +91,7 @@ class ProductController extends Controller
         ]);
 
         $data = $request->only('name', 'price', 'low_stock_threshold');
-        if ($data['low_stock_threshold'] === '' || $data['low_stock_threshold'] === null) {
+        if (!array_key_exists('low_stock_threshold', $data) || $data['low_stock_threshold'] === '' || $data['low_stock_threshold'] === null) {
             $data['low_stock_threshold'] = null;
         }
 
