@@ -10,6 +10,7 @@ use App\Http\Controllers\PettyCashExpenseController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\AppearanceController;
+use App\Http\Controllers\AppSettingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -48,6 +49,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('appearance', [AppearanceController::class, 'index'])->name('appearance.index');
     Route::post('appearance', [AppearanceController::class, 'update'])->name('appearance.update');
     Route::post('petty-cash/fund', [PettyCashExpenseController::class, 'updateFund'])->name('petty-cash.update-fund');
+    Route::get('/settings', [AppSettingController::class, 'index'])->name('settings.index');
+    Route::post('/settings', [AppSettingController::class, 'update'])->name('settings.update');
 });
 Route::middleware(['auth', 'role:admin,cajero'])->group(function () {
     Route::resource('products', ProductController::class);

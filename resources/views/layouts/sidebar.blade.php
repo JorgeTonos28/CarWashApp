@@ -70,8 +70,8 @@
                 </div>
             </div>
             @if(auth()->user()->role === 'admin')
-            <div x-data="{ open: {{ request()->routeIs('discounts.*','users.*','bank-accounts.*') ? 'true' : 'false' }} }">
-                <button type="button" @click="open=!open" class="w-full text-left px-3 py-2 font-semibold rounded hover:bg-gray-100 {{ request()->routeIs('discounts.*','users.*','bank-accounts.*') ? 'bg-gray-200' : '' }}">
+            <div x-data="{ open: {{ request()->routeIs('discounts.*','users.*','bank-accounts.*','appearance.*','settings.*') ? 'true' : 'false' }} }">
+                <button type="button" @click="open=!open" class="w-full text-left px-3 py-2 font-semibold rounded hover:bg-gray-100 {{ request()->routeIs('discounts.*','users.*','bank-accounts.*','appearance.*','settings.*') ? 'bg-gray-200' : '' }}">
                     <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 1 15 0 7.5 7.5 0 0 1-15 0z" />
                     </svg>
@@ -95,6 +95,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h18v18H3V3zm3 12l4-4 3 3 5-6 4 7H6z" />
                         </svg>
                         Apariencia
+                    </a>
+                    <a href="{{ route('settings.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('settings.*') ? 'border-b-2 border-gray-500' : '' }}">
+                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h3m-6 6h9m-3 6h3M9 6a1.5 1.5 0 1 0 0 3h6a1.5 1.5 0 1 0 0-3H9zm0 6a1.5 1.5 0 1 0 0 3h6a1.5 1.5 0 1 0 0-3H9zm0 6a1.5 1.5 0 1 0 0 3h6a1.5 1.5 0 1 0 0-3H9z" />
+                        </svg>
+                        Ajustes
                     </a>
                     <a href="{{ route('users.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('users.*') ? 'border-b-2 border-gray-500' : '' }}">
                         <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

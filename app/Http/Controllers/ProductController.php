@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\InventoryMovement;
+use App\Models\AppSetting;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -30,9 +31,14 @@ class ProductController extends Controller
             ]);
         }
 
+        $defaultThreshold = AppSetting::defaultLowStock();
+        $lowStockProducts = Product::lowStock($defaultThreshold)->orderBy('name')->get();
+
         return view('products.index', [
             'products' => $products,
             'filters' => $request->only('q'),
+            'lowStockProducts' => $lowStockProducts,
+            'defaultThreshold' => $defaultThreshold,
         ]);
     }
 
@@ -46,10 +52,16 @@ class ProductController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:products,name',
             'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0'
+            'stock' => 'required|integer|min:0',
+            'low_stock_threshold' => 'nullable|integer|min:0',
         ]);
 
-        $product = Product::create($request->only('name', 'price', 'stock'));
+        $data = $request->only('name', 'price', 'stock', 'low_stock_threshold');
+        if ($data['low_stock_threshold'] === '' || $data['low_stock_threshold'] === null) {
+            $data['low_stock_threshold'] = null;
+        }
+
+        $product = Product::create($data);
 
         if ($product->stock > 0) {
             InventoryMovement::create([
@@ -74,10 +86,16 @@ class ProductController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255|unique:products,name,' . $product->id,
-            'price' => 'required|numeric|min:0'
+            'price' => 'required|numeric|min:0',
+            'low_stock_threshold' => 'nullable|integer|min:0',
         ]);
 
-        $product->update($request->only('name', 'price'));
+        $data = $request->only('name', 'price', 'low_stock_threshold');
+        if ($data['low_stock_threshold'] === '' || $data['low_stock_threshold'] === null) {
+            $data['low_stock_threshold'] = null;
+        }
+
+        $product->update($data);
 
         return redirect()->route('products.index')
             ->with('success', 'Producto actualizado correctamente.');

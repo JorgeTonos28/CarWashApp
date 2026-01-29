@@ -9,7 +9,12 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'price', 'stock'];
+    protected $fillable = ['name', 'price', 'stock', 'low_stock_threshold'];
+
+    public function scopeLowStock($query, int $defaultThreshold)
+    {
+        return $query->whereRaw('stock <= COALESCE(low_stock_threshold, ?)', [$defaultThreshold]);
+    }
 
     public function inventoryMovements()
     {
@@ -21,4 +26,3 @@ class Product extends Model
         return $this->hasMany(TicketDetail::class);
     }
 }
-

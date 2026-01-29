@@ -6,6 +6,18 @@
     </x-slot>
 
     <div x-data="filterTable('{{ route('dashboard') }}')" class="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        @if(isset($lowStockProducts) && $lowStockProducts->count() > 0)
+            <div class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 mb-4 flex justify-between items-center">
+                <div>
+                    <p class="font-bold">¡Atención!</p>
+                    <p>Hay {{ $lowStockProducts->count() }} productos con stock bajo.</p>
+                </div>
+                <a href="{{ route('inventory.index') }}" class="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded">
+                    Ver Inventario
+                </a>
+            </div>
+        @endif
+
         <div class="flex flex-wrap items-end gap-4 mb-4">
             <form method="GET" x-ref="form" class="flex items-end gap-2">
                 <div>

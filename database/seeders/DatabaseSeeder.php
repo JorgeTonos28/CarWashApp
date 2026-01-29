@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CommissionSettingSeeder::class,
             AppearanceSettingSeeder::class,
+            AppSettingSeeder::class,
         ]);
     }
 }
