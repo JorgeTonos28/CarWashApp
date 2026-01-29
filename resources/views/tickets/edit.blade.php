@@ -36,7 +36,7 @@
                             $summary = $w->vehicle->brand.' | '.$w->vehicle->model.' | '.$w->vehicle->color.' | '.$w->vehicle->year.' | '.$w->vehicleType->name;
                             $servicesText = $w->details->where('type','service')->map(fn($d)=>$d->service->name)->implode(', ');
                         @endphp
-                        <details class="border rounded p-2 wash-item" data-total="{{ $wData['total'] }}" data-discount="{{ $wData['discount'] }}" ontoggle="if(this.open) editWash(this); else cancelWashForm();">
+                        <details class="border rounded p-2 wash-item" data-total="{{ $wData['total'] }}" data-discount="{{ $wData['discount'] }}" data-washer-locked="{{ $wData['washer_locked'] ? 1 : 0 }}" ontoggle="if(this.open) editWash(this); else cancelWashForm();">
                             <summary class="cursor-pointer font-medium text-gray-700">{{ $summary }}<button type="button" class="ml-2 text-red-600" onclick="removeWash(this); event.stopPropagation();">Eliminar</button></summary>
                             @foreach($wData['service_ids'] as $sid)
                                 <input type="hidden" name="washes[{{ $i }}][service_ids][]" value="{{ $sid }}">
@@ -115,8 +115,10 @@
                                     <option value="{{ $washer->id }}">{{ $washer->name }}</option>
                                 @endforeach
                             </select>
-                            <button type="button" onclick="clearWasher()" class="px-2 py-1 text-xs text-red-600 border border-red-600 rounded hover:bg-red-50">Quitar</button>
+                            <button type="button" id="clear-washer-btn" onclick="clearWasher()" class="px-2 py-1 text-xs text-red-600 border border-red-600 rounded hover:bg-red-50">Quitar</button>
                         </div>
+                        <input type="hidden" name="temp_washer_id" id="temp_washer_id_hidden" disabled>
+                        <p id="washer-lock-message" class="mt-1 text-sm text-amber-600 hidden">No se puede cambiar el lavador porque ya fue pagado.</p>
                     </div>
 
                     <!-- Propina -->
@@ -467,6 +469,7 @@
             document.getElementById('save-wash-btn').textContent = 'Agregar lavado';
             form.classList.remove('hidden');
             form.dataset.editIndex = '';
+            setWasherLockState(false);
         }
 
         function cancelWashForm() {
@@ -481,10 +484,14 @@
             form.querySelectorAll('select').forEach(sel=>{sel.value=''; if(sel._searchInput) sel._searchInput.value='';});
             form.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
             document.querySelectorAll('.wash-item').forEach(w=>w.removeAttribute('open'));
+            setWasherLockState(false);
         }
 
         function clearWasher(){
             const sel = document.querySelector('#wash-form select[name="temp_washer_id"]');
+            if (sel.disabled) {
+                return;
+            }
             sel.value='';
             if(sel._searchInput) sel._searchInput.value='';
         }
@@ -581,6 +588,7 @@
             const washerSelect = form.querySelector('select[name="temp_washer_id"]');
             washerSelect.value = wrapper.querySelector(`input[name="washes[${index}][washer_id]"]`).value;
             if(washerSelect._searchInput){ washerSelect._searchInput.value = washerSelect.options[washerSelect.selectedIndex]?.text || ''; }
+            setWasherLockState(wrapper.dataset.washerLocked === '1', washerSelect.value);
             form.querySelectorAll('input[name="temp_service_ids[]"]').forEach(cb=>{
                 const val = cb.value;
                 cb.checked = wrapper.querySelector(`input[name="washes[${index}][service_ids][]"][value="${val}"]`) !== null;
@@ -608,6 +616,23 @@
                     }
                 });
             });
+        }
+
+        function setWasherLockState(locked, washerId = '') {
+            const washerSelect = document.querySelector('#wash-form select[name="temp_washer_id"]');
+            const washerHidden = document.getElementById('temp_washer_id_hidden');
+            const washerMessage = document.getElementById('washer-lock-message');
+            const clearButton = document.getElementById('clear-washer-btn');
+            washerSelect.disabled = locked;
+            if (washerSelect._searchInput) {
+                washerSelect._searchInput.disabled = locked;
+            }
+            washerHidden.disabled = !locked;
+            washerHidden.value = locked ? washerId : '';
+            washerMessage.classList.toggle('hidden', !locked);
+            clearButton.disabled = locked;
+            clearButton.classList.toggle('opacity-50', locked);
+            clearButton.classList.toggle('cursor-not-allowed', locked);
         }
 
         const defaultCommission = @json(\App\Models\CommissionSetting::first()?->default_amount ?? 100);

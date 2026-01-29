@@ -196,9 +196,21 @@ class DashboardController extends Controller
 
         $washerPayDue = 0;
         foreach (Washer::all() as $w) {
-            $wq = $w->ticketWashes()->whereHas('ticket', function($q) use ($start, $end) {
-                $q->whereDate('created_at', '>=', $start)->whereDate('created_at', '<=', $end);
-            });
+            $wq = $w->ticketWashes()
+                ->whereHas('ticket', function($q) use ($start, $end) {
+                    $q->whereDate('created_at', '>=', $start)
+                        ->whereDate('created_at', '<=', $end);
+                })
+                ->where(function($q) {
+                    $q->whereHas('ticket', fn($t) => $t->where('canceled', false))
+                        ->orWhere(function($sub) {
+                            $sub->whereHas('ticket', fn($t) => $t->where('canceled', true))
+                                ->where(function($cond) {
+                                    $cond->whereHas('ticket', fn($t) => $t->where('keep_commission_on_cancel', true))
+                                        ->orWhere('washer_paid', true);
+                                });
+                        });
+                });
             $ticketsTotal = $wq->sum('commission_amount');
 
             $mq = $w->movements();

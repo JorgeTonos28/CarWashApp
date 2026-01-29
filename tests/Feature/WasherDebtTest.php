@@ -87,7 +87,7 @@ class WasherDebtTest extends TestCase
         $this->actingAs($user)
             ->post(route('tickets.cancel', $ticket), [
                 'cancel_reason' => 'test',
-                'pay_washer' => 'no',
+                'keep_commission' => 'no',
             ]);
 
         $this->assertDatabaseHas('washer_movements', [

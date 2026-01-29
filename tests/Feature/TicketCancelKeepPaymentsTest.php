@@ -85,7 +85,8 @@ class TicketCancelKeepPaymentsTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('tickets.cancel', $ticket), [
             'cancel_reason' => 'test',
-            'pay_washer' => 'yes',
+            'keep_commission' => 'yes',
+            'keep_tip' => 'yes',
         ]);
 
         $washer->refresh();
@@ -191,7 +192,8 @@ class TicketCancelKeepPaymentsTest extends TestCase
 
         $this->actingAs($user)->post(route('tickets.cancel', $ticket), [
             'cancel_reason' => 'test',
-            'pay_washer' => 'yes',
+            'keep_commission' => 'yes',
+            'keep_tip' => 'yes',
         ]);
 
         $payment = WasherPayment::first();

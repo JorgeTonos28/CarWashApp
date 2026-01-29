@@ -61,7 +61,8 @@ class TicketCancelTipTest extends TestCase
 
         $this->actingAs($user)->post(route('tickets.cancel', $ticket), [
             'cancel_reason' => 'test',
-            'pay_washer' => 'no',
+            'keep_commission' => 'yes',
+            'keep_tip' => 'no',
         ]);
 
         $washer->refresh();
