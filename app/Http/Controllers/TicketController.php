@@ -547,8 +547,19 @@ class TicketController extends Controller
                 'created_at' => $ticketDate,
             ]);
 
+            $ticketWash = TicketWash::create([
+                'ticket_id' => $ticket->id,
+                'vehicle_id' => optional($vehicle)->id,
+                'vehicle_type_id' => $request->vehicle_type_id,
+                'washer_id' => $request->washer_id,
+                'commission_amount' => $commissionAmount,
+                'washer_paid' => false,
+                'tip' => 0,
+            ]);
+
             foreach ($details as $detail) {
                 $detail['ticket_id'] = $ticket->id;
+                $detail['ticket_wash_id'] = $ticketWash->id;
                 TicketDetail::create($detail);
             }
 
@@ -741,6 +752,18 @@ class TicketController extends Controller
                 'ticket_date.before_or_equal' => 'La fecha del ticket no puede ser futura.'
             ]);
 
+            $existingWash = $ticket->washes()->first();
+            if ($existingWash) {
+                $tipPaid = WasherMovement::where('ticket_id', $ticket->id)
+                    ->where('washer_id', $existingWash->washer_id)
+                    ->where('description', 'like', '[P]%')
+                    ->where('paid', true)
+                    ->exists();
+                if (($existingWash->washer_paid || $tipPaid) && $request->washer_id != $existingWash->washer_id) {
+                    return back()->withErrors(['washer_id' => 'No se puede cambiar el lavador porque ya fue pagado.']);
+                }
+            }
+
             DB::beginTransaction();
             try {
                 $ticketDate = Carbon::parse($request->ticket_date)->setTimeFrom($ticket->created_at);
@@ -931,8 +954,29 @@ class TicketController extends Controller
                     'created_at' => $ticketDate,
                 ]);
 
+                $ticketWash = $ticket->washes()->first();
+                if (! $ticketWash) {
+                    $ticketWash = TicketWash::create([
+                        'ticket_id' => $ticket->id,
+                        'vehicle_id' => optional($vehicle)->id,
+                        'vehicle_type_id' => $request->vehicle_type_id,
+                        'washer_id' => $request->washer_id,
+                        'commission_amount' => $commissionAmount,
+                        'washer_paid' => false,
+                        'tip' => 0,
+                    ]);
+                } else {
+                    $ticketWash->update([
+                        'vehicle_id' => optional($vehicle)->id,
+                        'vehicle_type_id' => $request->vehicle_type_id,
+                        'washer_id' => $request->washer_id,
+                        'commission_amount' => $commissionAmount,
+                    ]);
+                }
+
                 foreach ($details as $detail) {
                     $detail['ticket_id'] = $ticket->id;
+                    $detail['ticket_wash_id'] = $ticketWash->id;
                     TicketDetail::create($detail);
                 }
 
