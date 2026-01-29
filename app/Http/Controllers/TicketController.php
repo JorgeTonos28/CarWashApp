@@ -635,7 +635,7 @@ class TicketController extends Controller
         $ticketProducts = $ticket->details->where('type','product')->map(fn($d)=>['id'=>$d->product_id,'qty'=>$d->quantity]);
         $ticketDrinks = $ticket->details->where('type','drink')->map(fn($d)=>['id'=>$d->drink_id,'qty'=>$d->quantity]);
 
-        $ticketWashes = $ticket->washes->map(function($w) use ($servicePrices, $serviceDiscounts) {
+        $ticketWashes = $ticket->washes->map(function($w) use ($servicePrices, $serviceDiscounts, $ticket) {
             $serviceIds = $w->details->where('type','service')->pluck('service_id');
             $total = 0; $discount = 0;
             foreach ($serviceIds as $sid) {
@@ -648,12 +648,21 @@ class TicketController extends Controller
                 $total += $price;
             }
             $total += $w->tip;
+            $tipPaid = false;
+            if ($w->washer_id) {
+                $tipPaid = WasherMovement::where('ticket_id', $ticket->id)
+                    ->where('washer_id', $w->washer_id)
+                    ->where('description', 'like', '[P]%')
+                    ->where('paid', true)
+                    ->exists();
+            }
             return [
                 'wash' => $w,
                 'service_ids' => $serviceIds,
                 'total' => $total,
                 'discount' => $discount,
                 'tip' => $w->tip,
+                'washer_locked' => $w->washer_paid || $tipPaid,
             ];
         });
 
@@ -1103,16 +1112,23 @@ class TicketController extends Controller
         $hasCommission = $ticket->washes->whereNotNull('washer_id')->isNotEmpty();
         $hasTip = $ticket->washes->sum('tip') > 0;
         $rules = ['cancel_reason' => 'required|string|max:255'];
-        if ($hasCommission || $hasTip) {
-            $rules['pay_washer'] = 'required|in:yes,no';
+        if ($hasCommission) {
+            $rules['keep_commission'] = 'required|in:yes,no,true,false,1,0';
+        }
+        if ($hasTip) {
+            $rules['keep_tip'] = 'required|in:yes,no,true,false,1,0';
         }
         $request->validate($rules);
 
-        $payCommission = $hasCommission ? $request->input('pay_washer') === 'yes' : true;
-        $payTip = $hasTip ? $request->input('pay_washer') === 'yes' : true;
+        $keepCommission = $hasCommission
+            ? filter_var($request->input('keep_commission'), FILTER_VALIDATE_BOOLEAN)
+            : true;
+        $keepTip = $hasTip
+            ? filter_var($request->input('keep_tip'), FILTER_VALIDATE_BOOLEAN)
+            : true;
         $cancelReason = $request->cancel_reason;
 
-        DB::transaction(function() use ($ticket, $payCommission, $payTip, $hasCommission, $hasTip, $cancelReason) {
+        DB::transaction(function() use ($ticket, $keepCommission, $keepTip, $hasCommission, $hasTip, $cancelReason) {
             foreach ($ticket->details as $detail) {
                 if ($detail->type === 'product' && $detail->product) {
                     $detail->product->increment('stock', $detail->quantity);
@@ -1144,13 +1160,13 @@ class TicketController extends Controller
                     $commissionPaid = $wash->washer_paid;
 
                     if (! $commissionPaid) {
-                        if (! $payCommission) {
+                        if (! $keepCommission) {
                             $washer->decrement('pending_amount', $commissionAmount);
                             $ticket->washer_pending_amount = max(0, $ticket->washer_pending_amount - $commissionAmount);
                             $wash->update(['washer_id' => null]);
                         }
                     } else {
-                        if ($payCommission) {
+                        if ($keepCommission) {
                             WasherPayment::where('washer_id', $wash->washer_id)
                                 ->whereDate('payment_date', $ticket->created_at->toDateString())
                                 ->update([
@@ -1171,13 +1187,13 @@ class TicketController extends Controller
 
                     if ($tip > 0 && $tipMovement) {
                         if (! $tipPaid) {
-                            if (! $payTip) {
+                            if (! $keepTip) {
                                 $washer->decrement('pending_amount', $tip);
                                 $ticket->washer_pending_amount = max(0, $ticket->washer_pending_amount - $tip);
                                 $tipMovement->delete();
                             }
                         } else {
-                            if ($payTip) {
+                            if ($keepTip) {
                                 WasherPayment::where('washer_id', $wash->washer_id)
                                     ->whereDate('payment_date', $ticket->created_at->toDateString())
                                     ->update([
@@ -1197,10 +1213,10 @@ class TicketController extends Controller
                         }
                     }
                 } else {
-                    if (! $payCommission) {
+                    if (! $keepCommission) {
                         $ticket->washer_pending_amount = max(0, $ticket->washer_pending_amount - $commissionAmount);
                     }
-                    if ($tip > 0 && ! $payTip) {
+                    if ($tip > 0 && ! $keepTip) {
                         $ticket->washer_pending_amount = max(0, $ticket->washer_pending_amount - $tip);
                     }
                 }
@@ -1214,8 +1230,8 @@ class TicketController extends Controller
                 'canceled' => true,
                 'cancel_reason' => $cancelReason,
                 'washer_pending_amount' => $ticket->washer_pending_amount,
-                'keep_commission_on_cancel' => $hasCommission ? $payCommission : null,
-                'keep_tip_on_cancel' => $hasTip ? $payTip : null,
+                'keep_commission_on_cancel' => $hasCommission ? $keepCommission : null,
+                'keep_tip_on_cancel' => $hasTip ? $keepTip : null,
             ]);
         });
 

@@ -57,15 +57,25 @@
                 $hasCommission = $ticket->washes->whereNotNull('washer_id')->isNotEmpty();
                 $hasTip = $ticket->washes->sum('tip') > 0;
             @endphp
-            @if($hasCommission || $hasTip)
-            <div class="space-y-2 text-sm">
-                <label class="block font-medium">¿Desea pagar la comisión o propina al lavador de todos modos?</label>
-                <select name="pay_washer" class="form-select w-full" required>
-                    <option value=""></option>
-                    <option value="yes">Si</option>
-                    <option value="no">No</option>
-                </select>
-            </div>
+            @if($hasCommission)
+                <div class="space-y-2 text-sm">
+                    <label class="block font-medium">¿Mantener la comisión del lavador?</label>
+                    <select name="keep_commission" class="form-select w-full" required>
+                        <option value=""></option>
+                        <option value="yes">Si</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+            @endif
+            @if($hasTip)
+                <div class="space-y-2 text-sm">
+                    <label class="block font-medium">¿Mantener la propina del lavador?</label>
+                    <select name="keep_tip" class="form-select w-full" required>
+                        <option value=""></option>
+                        <option value="yes">Si</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
             @endif
             <div class="flex justify-end">
                 <x-secondary-button x-on:click="$dispatch('close')">Cancelar</x-secondary-button>
