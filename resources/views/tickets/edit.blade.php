@@ -49,6 +49,7 @@
                             <input type="hidden" name="washes[{{ $i }}][vehicle_type_id]" value="{{ $w->vehicle_type_id }}">
                             <input type="hidden" name="washes[{{ $i }}][washer_id]" value="{{ $w->washer_id }}">
                             <input type="hidden" name="washes[{{ $i }}][tip]" value="{{ $wData['tip'] }}">
+                            <input type="hidden" name="washes[{{ $i }}][commission_amount]" value="{{ $w->commission_amount }}">
                             <div class="mt-2 space-y-1 text-sm">
                                 <p>Placa: {{ $w->vehicle->plate }}</p>
                                 <p>Lavador: {{ optional($w->washer)->name ?? 'N/A' }}</p>
@@ -544,6 +545,7 @@
                 `<input type=\"hidden\" name=\"washes[${index}][vehicle_type_id]\" value=\"${vehicleTypeId}\">` +
                 `<input type=\"hidden\" name=\"washes[${index}][washer_id]\" value=\"${washerId}\">` +
                 `<input type=\"hidden\" name=\"washes[${index}][tip]\" value=\"${tip.toFixed(2)}\">` +
+                `<input type=\"hidden\" name=\"washes[${index}][commission_amount]\" value=\"${defaultCommission}\">` +
                 `<div class=\"mt-2 space-y-1 text-sm\"><p>Placa: ${plate}</p><p>Lavador: ${washerName || 'N/A'}</p><p>Servicios: ${servicesText}</p><p>Propina: RD$ ${tip.toFixed(2)}</p></div>`;
 
             updateWashIndexes();
@@ -607,6 +609,8 @@
                 });
             });
         }
+
+        const defaultCommission = @json(\App\Models\CommissionSetting::first()?->default_amount ?? 100);
 
         function toggleBank() {
             const field = document.getElementById('bank-field');
