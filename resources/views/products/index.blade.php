@@ -6,7 +6,10 @@
     </x-slot>
 
     <div x-data="filterTable('{{ route('products.index') }}', {selected: null})" x-on:click.away="selected = null" class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
-
+        @include('partials.low-stock-panel', [
+            'lowStockProducts' => $lowStockProducts,
+            'defaultThreshold' => $defaultThreshold,
+        ])
 
         @if (auth()->user()->role === 'admin')
             <div class="mb-4 flex items-center gap-4">
@@ -42,6 +45,10 @@
                     <div>
                         <label class="block font-medium text-sm text-gray-700">Precio (RD$)</label>
                         <input type="number" step="0.01" name="price" value="{{ $product->price }}" required class="form-input w-full">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-sm text-gray-700">Aviso de Escasez (Stock Mínimo)</label>
+                        <input type="number" name="low_stock_threshold" value="{{ old('low_stock_threshold', $product->low_stock_threshold) }}" class="form-input w-full" placeholder="Dejar vacío para usar valor por defecto">
                     </div>
                     <div class="mt-6 flex justify-end">
                         <x-secondary-button x-on:click="$dispatch('close')">Cancelar</x-secondary-button>

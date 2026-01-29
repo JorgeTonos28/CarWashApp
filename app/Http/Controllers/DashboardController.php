@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\AppSetting;
 use App\Models\Ticket;
 use App\Models\TicketWash;
 use App\Models\PettyCashExpense;
@@ -11,6 +12,7 @@ use App\Models\WasherPayment;
 use App\Models\BankAccount;
 use App\Models\Washer;
 use App\Models\WasherMovement;
+use App\Models\Product;
 
 class DashboardController extends Controller
 {
@@ -238,6 +240,9 @@ class DashboardController extends Controller
             ));
         }
 
+        $defaultThreshold = AppSetting::defaultLowStock();
+        $lowStockProducts = Product::lowStock($defaultThreshold)->orderBy('name')->get();
+
         return view('dashboard', [
             'filters' => ['start' => $start, 'end' => $end],
             'totalFacturado' => $totalFacturado,
@@ -257,6 +262,7 @@ class DashboardController extends Controller
             'pendingTickets' => $pendingTickets,
             'washerDebts' => $washerDebts,
             'pettyCashAmount' => $pettyCashAmount,
+            'lowStockProducts' => $lowStockProducts,
         ]);
     }
 

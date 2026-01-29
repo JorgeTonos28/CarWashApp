@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AppSetting;
 use App\Models\InventoryMovement;
 use App\Models\Product;
 use Illuminate\Http\Request;
@@ -44,9 +45,14 @@ class InventoryMovementController extends Controller
             ]);
         }
 
+        $defaultThreshold = AppSetting::defaultLowStock();
+        $lowStockProducts = Product::lowStock($defaultThreshold)->orderBy('name')->get();
+
         return view('inventory.index', [
             'movements' => $movements,
             'filters' => $request->only(['start', 'end', 'product']),
+            'lowStockProducts' => $lowStockProducts,
+            'defaultThreshold' => $defaultThreshold,
         ]);
     }
 

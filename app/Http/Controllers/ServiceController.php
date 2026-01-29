@@ -20,13 +20,14 @@ class ServiceController extends Controller
 
     public function index()
     {
-        $services = Service::orderBy('name')->get();
-        return view('services.index', compact('services'));
+        $services = Service::with('prices')->orderBy('name')->get();
+        $vehicleTypes = VehicleType::orderBy('name')->get();
+        return view('services.index', compact('services', 'vehicleTypes'));
     }
 
     public function create()
     {
-        $vehicleTypes = VehicleType::all();
+        $vehicleTypes = VehicleType::orderBy('name')->get();
         return view('services.create', compact('vehicleTypes'));
     }
 
@@ -36,9 +37,22 @@ class ServiceController extends Controller
             'name' => 'required|string|max:255|unique:services,name',
             'description' => 'nullable|string',
             'active' => 'sometimes|boolean',
-            'prices' => 'required|array',
-            'prices.*' => 'required|numeric|min:0'
+            'prices_vehicles' => 'nullable|array',
+            'prices_vehicles.*' => 'nullable|numeric|min:0',
+            'prices_generic' => 'nullable|array',
+            'prices_generic.*.label' => 'required_with:prices_generic.*.price|string|max:255',
+            'prices_generic.*.price' => 'required_with:prices_generic.*.label|numeric|min:0',
         ]);
+
+        $vehiclePrices = collect($request->input('prices_vehicles', []))
+            ->filter(fn ($price) => $price !== null && $price !== '');
+        $genericPrices = collect($request->input('prices_generic', []))
+            ->filter(fn ($row) => filled($row['label'] ?? '') || filled($row['price'] ?? ''))
+            ->values();
+
+        if ($vehiclePrices->isEmpty() && $genericPrices->isEmpty()) {
+            return back()->withErrors(['prices_vehicles' => 'Debes ingresar al menos un precio.'])->withInput();
+        }
 
         $service = Service::create([
             'name' => $request->name,
@@ -46,11 +60,19 @@ class ServiceController extends Controller
             'active' => $request->boolean('active')
         ]);
 
-        foreach ($request->prices as $vehicleTypeId => $price) {
+        foreach ($vehiclePrices as $vehicleTypeId => $price) {
             ServicePrice::create([
                 'service_id' => $service->id,
                 'vehicle_type_id' => $vehicleTypeId,
                 'price' => $price
+            ]);
+        }
+
+        foreach ($genericPrices as $row) {
+            ServicePrice::create([
+                'service_id' => $service->id,
+                'label' => $row['label'],
+                'price' => $row['price'],
             ]);
         }
 
@@ -60,9 +82,17 @@ class ServiceController extends Controller
 
     public function edit(Service $service)
     {
-        $vehicleTypes = VehicleType::all();
-        $prices = $service->prices->pluck('price', 'vehicle_type_id');
-        return view('services.edit', compact('service', 'vehicleTypes', 'prices'));
+        $vehicleTypes = VehicleType::orderBy('name')->get();
+        $vehiclePrices = $service->prices()
+            ->whereNotNull('vehicle_type_id')
+            ->pluck('price', 'vehicle_type_id');
+        $genericPrices = $service->prices()
+            ->whereNull('vehicle_type_id')
+            ->get(['label', 'price'])
+            ->map(fn ($price) => ['label' => $price->label, 'price' => $price->price])
+            ->values();
+
+        return view('services.edit', compact('service', 'vehicleTypes', 'vehiclePrices', 'genericPrices'));
     }
 
     public function update(Request $request, Service $service)
@@ -71,9 +101,22 @@ class ServiceController extends Controller
             'name' => 'required|string|max:255|unique:services,name,' . $service->id,
             'description' => 'nullable|string',
             'active' => 'sometimes|boolean',
-            'prices' => 'required|array',
-            'prices.*' => 'required|numeric|min:0'
+            'prices_vehicles' => 'nullable|array',
+            'prices_vehicles.*' => 'nullable|numeric|min:0',
+            'prices_generic' => 'nullable|array',
+            'prices_generic.*.label' => 'required_with:prices_generic.*.price|string|max:255',
+            'prices_generic.*.price' => 'required_with:prices_generic.*.label|numeric|min:0',
         ]);
+
+        $vehiclePrices = collect($request->input('prices_vehicles', []))
+            ->filter(fn ($price) => $price !== null && $price !== '');
+        $genericPrices = collect($request->input('prices_generic', []))
+            ->filter(fn ($row) => filled($row['label'] ?? '') || filled($row['price'] ?? ''))
+            ->values();
+
+        if ($vehiclePrices->isEmpty() && $genericPrices->isEmpty()) {
+            return back()->withErrors(['prices_vehicles' => 'Debes ingresar al menos un precio.'])->withInput();
+        }
 
         $service->update([
             'name' => $request->name,
@@ -81,11 +124,22 @@ class ServiceController extends Controller
             'active' => $request->boolean('active')
         ]);
 
-        foreach ($request->prices as $vehicleTypeId => $price) {
-            ServicePrice::updateOrCreate(
-                ['service_id' => $service->id, 'vehicle_type_id' => $vehicleTypeId],
-                ['price' => $price]
-            );
+        $service->prices()->delete();
+
+        foreach ($vehiclePrices as $vehicleTypeId => $price) {
+            ServicePrice::create([
+                'service_id' => $service->id,
+                'vehicle_type_id' => $vehicleTypeId,
+                'price' => $price,
+            ]);
+        }
+
+        foreach ($genericPrices as $row) {
+            ServicePrice::create([
+                'service_id' => $service->id,
+                'label' => $row['label'],
+                'price' => $row['price'],
+            ]);
         }
 
         return redirect()->route('services.index')

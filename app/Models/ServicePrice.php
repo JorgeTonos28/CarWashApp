@@ -9,7 +9,7 @@ class ServicePrice extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['service_id', 'vehicle_type_id', 'price'];
+    protected $fillable = ['service_id', 'vehicle_type_id', 'label', 'price'];
 
     public function service()
     {
@@ -21,4 +21,3 @@ class ServicePrice extends Model
         return $this->belongsTo(VehicleType::class);
     }
 }
-
