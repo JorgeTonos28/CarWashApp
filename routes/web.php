@@ -46,7 +46,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('discounts', \App\Http\Controllers\DiscountController::class);
     Route::resource('bank-accounts', \App\Http\Controllers\BankAccountController::class);
     Route::get('appearance', [AppearanceController::class, 'index'])->name('appearance.index');
-    Route::post('appearance', [AppearanceController::class, 'store'])->name('appearance.store');
+    Route::post('appearance', [AppearanceController::class, 'update'])->name('appearance.update');
     Route::post('petty-cash/fund', [PettyCashExpenseController::class, 'updateFund'])->name('petty-cash.update-fund');
 });
 Route::middleware(['auth', 'role:admin,cajero'])->group(function () {
@@ -57,6 +57,7 @@ Route::middleware(['auth', 'role:admin,cajero'])->group(function () {
     Route::resource('inventory', InventoryMovementController::class)->only(['index', 'create', 'store']);
 });
 Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::post('washers/settings', [WasherController::class, 'updateSettings'])->name('washers.settings.update');
     Route::post('washers/pay-all', [WasherController::class, 'payAll'])->name('washers.payAll');
     Route::post('washers/{washer}/pay', [WasherController::class, 'pay'])->name('washers.pay');
     Route::resource('washers', WasherController::class);
@@ -65,6 +66,7 @@ Route::middleware(['auth', 'role:admin,cajero'])->group(function () {
     Route::get('vehicles/search', [\App\Http\Controllers\VehicleController::class, 'search'])->name('vehicles.search');
     Route::get('tickets/canceled', [TicketController::class, 'canceled'])->name('tickets.canceled');
     Route::get('tickets/pending', [TicketController::class, 'pending'])->name('tickets.pending');
+    Route::get('tickets/print/{id}', [TicketController::class, 'print'])->name('tickets.print');
     Route::post('tickets/{ticket}/pay', [TicketController::class, 'pay'])->name('tickets.pay');
     Route::post('tickets/{ticket}/cancel', [TicketController::class, 'cancel'])->name('tickets.cancel');
     Route::resource('tickets', TicketController::class);

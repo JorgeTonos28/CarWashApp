@@ -6,6 +6,7 @@ use App\Models\Washer;
 use App\Models\WasherPayment;
 use App\Models\WasherMovement;
 use App\Models\TicketWash;
+use App\Models\CommissionSetting;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -35,7 +36,7 @@ class WasherController extends Controller
                     $q->whereDate('created_at', '<=', $filters['end']);
                 }
             });
-            $ticketTotal = $washQuery->count() * 100;
+            $ticketTotal = $washQuery->sum('commission_amount');
 
             $movementQuery = $washer->movements();
             if ($filters['start']) {
@@ -70,7 +71,7 @@ class WasherController extends Controller
                 }
             });
 
-        $unassignedBase = (clone $unassignedQuery)->count() * 100;
+        $unassignedBase = (clone $unassignedQuery)->sum('commission_amount');
         $unassignedTips = (clone $unassignedQuery)->sum('tip');
         $unassignedTotal = $unassignedBase + $unassignedTips;
 
@@ -96,6 +97,18 @@ class WasherController extends Controller
     public function create()
     {
         return view('washers.create');
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $request->validate([
+            'default_amount' => 'required|numeric|min:0',
+        ]);
+
+        $setting = CommissionSetting::firstOrCreate([], ['default_amount' => 100]);
+        $setting->update(['default_amount' => $request->default_amount]);
+
+        return back()->with('success', 'Comisión por defecto actualizada correctamente.');
     }
 
     public function store(Request $request)
@@ -199,7 +212,7 @@ class WasherController extends Controller
                 'date' => $t->created_at,
                 'customer' => $t->customer_name,
                 'description' => implode(' | ', array_filter($detailParts)),
-                'gain' => 100,
+                'gain' => $w->commission_amount,
                 'payment' => null,
                 'wash_id' => $w->id,
                 'ticket_id' => $t->id,
@@ -237,7 +250,7 @@ class WasherController extends Controller
         }
         usort($events, fn($a, $b) => $a['date']->timestamp <=> $b['date']->timestamp);
 
-        $totalGain = $washes->count() * 100 + $movements->sum('amount');
+        $totalGain = $washes->sum('commission_amount') + $movements->sum('amount');
         $totalPaid = $payments->sum('amount_paid');
         $pending = $totalGain - $totalPaid;
 
@@ -289,7 +302,7 @@ class WasherController extends Controller
             $date = $w->ticket->created_at;
             $key = $date->toDateString();
             $groups[$key]['washes'][] = $w;
-            $groups[$key]['amount'] = ($groups[$key]['amount'] ?? 0) + 100;
+            $groups[$key]['amount'] = ($groups[$key]['amount'] ?? 0) + $w->commission_amount;
             $groups[$key]['dateTime'] = $groups[$key]['dateTime'] ?? $date;
         }
         foreach ($movements as $m) {
@@ -323,11 +336,11 @@ class WasherController extends Controller
                     }
                 }
             }
-            WasherPayment::create([
-                'washer_id' => $washer->id,
-                'payment_date' => $paymentDate,
-                'total_washes' => $washCount,
-                'amount_paid' => $amount,
+                WasherPayment::create([
+                    'washer_id' => $washer->id,
+                    'payment_date' => $paymentDate,
+                    'total_washes' => $washCount,
+                    'amount_paid' => $amount,
                 'created_at' => $paymentDate,
                 'canceled_ticket' => $canceled,
             ]);
@@ -369,7 +382,7 @@ class WasherController extends Controller
                     'washer_id' => $washer->id,
                     'payment_date' => $paymentDate,
                     'total_washes' => $group->count(),
-                    'amount_paid' => $group->count() * 100,
+                    'amount_paid' => $group->sum('commission_amount'),
                     'created_at' => $paymentDate,
                 ]);
             }

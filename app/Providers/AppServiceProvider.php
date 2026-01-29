@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\AppearanceSetting;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +22,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        if (Schema::hasTable('appearance_settings')) {
+            $appearance = AppearanceSetting::first();
+            if (! $appearance) {
+                $appearance = AppearanceSetting::create([
+                    'business_name' => 'CarWash App',
+                ]);
+            }
+            View::share('appearance', $appearance);
+        }
     }
 }

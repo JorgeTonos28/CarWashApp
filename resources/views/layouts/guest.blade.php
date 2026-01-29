@@ -7,7 +7,11 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
-        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+        @php
+            $faviconPath = public_path('favicon.ico');
+            $faviconVersion = file_exists($faviconPath) ? filemtime($faviconPath) : null;
+        @endphp
+        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}@if($faviconVersion)?v={{ $faviconVersion }}@endif">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -18,9 +22,13 @@
     </head>
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-            <div>
+            <div class="flex justify-center mb-4">
                 <a href="/">
-                    <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
+                    @if(isset($appearance) && $appearance->login_logo_updated_at)
+                        <img src="{{ asset('storage/images/login_logo.png') }}?v={{ $appearance->login_logo_updated_at->timestamp }}" class="w-32 h-32 object-contain" alt="Logo de inicio">
+                    @else
+                        <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
+                    @endif
                 </a>
             </div>
 
