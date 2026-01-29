@@ -27,6 +27,7 @@ class AppearanceController extends Controller
             'login_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'qr_code' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'qr_description' => 'nullable|string|max:50',
+            'favicon' => 'nullable|image|mimes:png,ico|max:512',
         ]);
 
         $settings = AppearanceSetting::firstOrCreate([], [
@@ -57,6 +58,10 @@ class AppearanceController extends Controller
             }
             $request->file('qr_code')->move($dir, 'qr_code.png');
             $data['qr_code_updated_at'] = now();
+        }
+
+        if ($request->hasFile('favicon')) {
+            $request->file('favicon')->move(public_path(), 'favicon.ico');
         }
 
         $settings->update($data);

@@ -33,6 +33,24 @@
                     <input type="file" name="login_logo" class="form-input mt-1">
                     <p class="text-xs text-gray-500 mt-1">Dimensiones recomendadas: 500x500px.</p>
                 </div>
+                <div>
+                    <label class="block font-medium text-sm text-gray-700">Favicon</label>
+                    <input type="file" name="favicon" class="form-input mt-1">
+                    <p class="text-xs text-gray-500 mt-1">Tamaño recomendado: 32x32 px.</p>
+                    <div class="mt-2">
+                        <p class="text-xs text-gray-500">Favicon actual:</p>
+                        @php
+                            $faviconPath = public_path('favicon.ico');
+                            $faviconExists = file_exists($faviconPath);
+                            $faviconVersion = $faviconExists ? filemtime($faviconPath) : null;
+                        @endphp
+                        @if($faviconExists)
+                            <img src="{{ asset('favicon.ico') }}?v={{ $faviconVersion }}" class="w-8 h-8 object-contain border" alt="Favicon actual">
+                        @else
+                            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><rect width='32' height='32' rx='6' fill='%23e5e7eb'/><path d='M9 21c0-6 5-11 7-11s7 5 7 11-5 7-7 7-7-1-7-7Z' fill='%239ca3af'/></svg>" class="w-8 h-8 object-contain border" alt="Favicon de muestra">
+                        @endif
+                    </div>
+                </div>
                 <div class="mt-6 border-t pt-4">
                     <h3 class="text-lg font-medium text-gray-900">QR en Factura</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">

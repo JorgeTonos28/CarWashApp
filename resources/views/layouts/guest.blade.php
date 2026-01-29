@@ -7,7 +7,11 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
-        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+        @php
+            $faviconPath = public_path('favicon.ico');
+            $faviconVersion = file_exists($faviconPath) ? filemtime($faviconPath) : null;
+        @endphp
+        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}@if($faviconVersion)?v={{ $faviconVersion }}@endif">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

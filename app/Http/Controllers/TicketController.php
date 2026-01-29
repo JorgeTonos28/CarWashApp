@@ -931,7 +931,11 @@ class TicketController extends Controller
 
                 DB::commit();
 
-                return redirect()->route('tickets.index')->with('success','Ticket actualizado.');
+                $redirect = redirect()->route('tickets.index')->with('success','Ticket actualizado.');
+                if (! $pending) {
+                    $redirect->with('print_ticket_id', $ticket->id);
+                }
+                return $redirect;
             } catch (\Exception $e) {
                 DB::rollBack();
                 return back()->with('error','Error actualizando ticket: '.$e->getMessage());
@@ -1486,7 +1490,11 @@ class TicketController extends Controller
                 InventoryMovement::create($mov);
             }
             DB::commit();
-            return redirect()->route('tickets.index')->with('success','Ticket actualizado.');
+            $redirect = redirect()->route('tickets.index')->with('success','Ticket actualizado.');
+            if (! $pending) {
+                $redirect->with('print_ticket_id', $ticket->id);
+            }
+            return $redirect;
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error','Error actualizando ticket: '.$e->getMessage());
