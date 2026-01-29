@@ -1,5 +1,5 @@
 @if(isset($appearance) && $appearance->logo_updated_at)
-    <img src="{{ asset('storage/images/logo.png') }}?v={{ $appearance->logo_updated_at->timestamp }}" alt="Logo" {{ $attributes }}>
+    <img src="{{ asset('images/logo.png') }}?v={{ $appearance->logo_updated_at->timestamp }}" alt="Logo" {{ $attributes }}>
 @else
     <svg viewBox="0 0 48 48" role="img" aria-label="Logo" {{ $attributes }}>
         <rect width="48" height="48" rx="10" fill="currentColor" />

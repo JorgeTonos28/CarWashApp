@@ -25,7 +25,7 @@
             <div class="flex justify-center mb-4">
                 <a href="/">
                     @if(isset($appearance) && $appearance->login_logo_updated_at)
-                        <img src="{{ asset('storage/images/login_logo.png') }}?v={{ $appearance->login_logo_updated_at->timestamp }}" class="w-32 h-32 object-contain" alt="Logo de inicio">
+                        <img src="{{ asset('images/login_logo.png') }}?v={{ $appearance->login_logo_updated_at->timestamp }}" class="w-32 h-32 object-contain" alt="Logo de inicio">
                     @else
                         <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
                     @endif
