@@ -179,7 +179,16 @@
                 <div class="space-y-2">
                     @foreach($ticket->washes as $wash)
                         <div class="border rounded p-2">
-                            <p class="text-sm font-semibold">{{ $wash->vehicle->brand }} | {{ $wash->vehicle->model }} | {{ $wash->vehicle->color }} | {{ $wash->vehicle->year }} | {{ $wash->vehicleType->name }}</p>
+                            <p class="text-sm font-semibold">
+                                @if($wash->vehicle)
+                                    {{ $wash->vehicle->brand }} | {{ $wash->vehicle->model }} | {{ $wash->vehicle->color }} | {{ $wash->vehicle->year }}
+                                @else
+                                    Vehículo no disponible
+                                @endif
+                                @if($wash->vehicleType)
+                                    | {{ $wash->vehicleType->name }}
+                                @endif
+                            </p>
                             <p class="text-sm">Servicios: {{ $wash->details->where('type','service')->map(fn($d)=>$d->service->name)->implode(', ') }}</p>
                             @if($wash->tip > 0)
                                 <p class="text-sm">Propina: RD$ {{ number_format($wash->tip,2) }}</p>
