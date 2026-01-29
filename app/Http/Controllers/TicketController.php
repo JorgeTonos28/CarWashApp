@@ -563,6 +563,13 @@ class TicketController extends Controller
 
             DB::commit();
 
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'redirect' => route('tickets.index'),
+                    'print_ticket_id' => $pending ? null : $ticket->id,
+                ]);
+            }
+
             $redirect = redirect()->route('tickets.index')
                 ->with('success', 'Ticket generado correctamente.');
             if (! $pending) {
@@ -1841,6 +1848,13 @@ class TicketController extends Controller
             }
 
             DB::commit();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'redirect' => route('tickets.index'),
+                    'print_ticket_id' => $pending ? null : $ticket->id,
+                ]);
+            }
 
             $redirect = redirect()->route('tickets.index')->with('success', 'Ticket generado correctamente.');
             if (! $pending) {

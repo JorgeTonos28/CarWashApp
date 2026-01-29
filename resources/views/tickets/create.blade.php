@@ -704,6 +704,8 @@
                 async submitForm(e) {
                     const form = this.$refs.form;
                     const submitter = e?.submitter;
+                    const printBase = '{{ url('tickets/print') }}';
+                    let printTab = null;
                     this.errors = [];
 
                     if (submitter?.value === 'pending') {
@@ -728,6 +730,10 @@
                         return;
                     }
 
+                    if (submitter?.value === 'pay') {
+                        printTab = window.open('about:blank', '_blank');
+                    }
+
                     try {
                         const res = await fetch(form.action, {
                             method: 'POST',
@@ -739,7 +745,13 @@
                             body: new FormData(form, submitter)
                         });
                         if (res.ok) {
-                            window.location = '{{ route('tickets.index') }}';
+                            const data = await res.json().catch(() => ({}));
+                            if (printTab && data.print_ticket_id) {
+                                printTab.location = `${printBase}/${data.print_ticket_id}`;
+                            } else if (printTab) {
+                                printTab.close();
+                            }
+                            window.location = data.redirect || '{{ route('tickets.index') }}';
                             return;
                         }
                         if (res.status === 422) {
@@ -751,6 +763,9 @@
                         }
                     } catch (e) {
                         this.errors = ['Error de red'];
+                    }
+                    if (printTab) {
+                        printTab.close();
                     }
                     this.showErrors();
                 },
