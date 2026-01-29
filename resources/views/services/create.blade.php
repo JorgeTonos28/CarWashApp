@@ -7,7 +7,7 @@
 
     <div class="py-4">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 bg-white p-6 shadow sm:rounded-lg">
-        <form action="{{ route('services.store') }}" method="POST" class="space-y-6">
+        <form action="{{ route('services.store') }}" method="POST" class="space-y-6" x-data="{ tab: 'vehicles', genericRows: @js(old('prices_generic', [])) }" x-init="if (genericRows.length === 0) { genericRows = [{ label: '', price: '' }]; }">
             @csrf
 
             <div>
@@ -20,14 +20,37 @@
                <textarea name="description" class="form-input w-full"></textarea>
            </div>
 
-            <div>
-                <label class="block font-medium text-sm text-gray-700 mb-1">Precios por tipo de vehículo</label>
-                @foreach ($vehicleTypes as $type)
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="w-32">{{ $type->name }}</span>
-                        <input type="number" name="prices[{{ $type->id }}]" step="0.01" required class="form-input w-full">
+            <div class="space-y-4">
+                <div class="flex gap-2 border-b">
+                    <button type="button" class="px-4 py-2" :class="tab === 'vehicles' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500'" @click="tab = 'vehicles'">Por Vehículo</button>
+                    <button type="button" class="px-4 py-2" :class="tab === 'generic' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500'" @click="tab = 'generic'">Otros / Genéricos</button>
+                </div>
+
+                <div x-show="tab === 'vehicles'" class="space-y-2">
+                    <label class="block font-medium text-sm text-gray-700">Precios por tipo de vehículo</label>
+                    @forelse ($vehicleTypes as $type)
+                        <div class="flex items-center gap-2">
+                            <span class="w-32">{{ $type->name }}</span>
+                            <input type="number" name="prices_vehicles[{{ $type->id }}]" step="0.01" value="{{ old('prices_vehicles.' . $type->id) }}" class="form-input w-full">
+                        </div>
+                    @empty
+                        <p class="text-sm text-gray-500">No hay tipos de vehículos activos.</p>
+                    @endforelse
+                </div>
+
+                <div x-show="tab === 'generic'" class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="block font-medium text-sm text-gray-700">Variantes genéricas</label>
+                        <button type="button" class="text-blue-600 text-sm" @click="genericRows.push({ label: '', price: '' })">+ Agregar Variante</button>
                     </div>
-                @endforeach
+                    <template x-for="(row, index) in genericRows" :key="index">
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <input type="text" class="form-input flex-1" placeholder="Nombre de la variante" x-model="row.label" :name="`prices_generic[${index}][label]`">
+                            <input type="number" step="0.01" class="form-input w-40" placeholder="Precio" x-model="row.price" :name="`prices_generic[${index}][price]`">
+                            <button type="button" class="text-red-600 text-sm" @click="genericRows.splice(index, 1)">Eliminar</button>
+                        </div>
+                    </template>
+                </div>
             </div>
 
             <div class="flex items-center">

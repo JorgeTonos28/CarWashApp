@@ -11,6 +11,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\AppearanceController;
 use App\Http\Controllers\AppSettingController;
+use App\Http\Controllers\VehicleTypeController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -41,6 +42,8 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('services', ServiceController::class);
+    Route::post('vehicle-types', [VehicleTypeController::class, 'store'])->name('vehicle-types.store');
+    Route::delete('vehicle-types/{vehicleType}', [VehicleTypeController::class, 'destroy'])->name('vehicle-types.destroy');
     Route::resource('users', UserController::class)->except(['show']);
     Route::put('discounts/{discount}/activate', [\App\Http\Controllers\DiscountController::class, 'activate'])->name('discounts.activate');
     Route::put('discounts/{discount}/deactivate', [\App\Http\Controllers\DiscountController::class, 'deactivate'])->name('discounts.deactivate');
