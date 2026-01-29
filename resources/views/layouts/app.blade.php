@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ isset($appearance) && $appearance->business_name ? $appearance->business_name : config('app.name', 'CarWash App') }}</title>
 
         @php
             $faviconPath = public_path('favicon.ico');
