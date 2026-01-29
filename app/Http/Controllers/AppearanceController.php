@@ -41,22 +41,23 @@ class AppearanceController extends Controller
             'qr_description' => $request->qr_description,
         ];
 
+        $imagesDir = public_path('images');
+        if (! file_exists($imagesDir)) {
+            mkdir($imagesDir, 0755, true);
+        }
+
         if ($request->hasFile('logo')) {
-            $request->file('logo')->storeAs('public/images', 'logo.png');
+            $request->file('logo')->move($imagesDir, 'logo.png');
             $data['logo_updated_at'] = now();
         }
 
         if ($request->hasFile('login_logo')) {
-            $request->file('login_logo')->storeAs('public/images', 'login_logo.png');
+            $request->file('login_logo')->move($imagesDir, 'login_logo.png');
             $data['login_logo_updated_at'] = now();
         }
 
         if ($request->hasFile('qr_code')) {
-            $dir = public_path('images');
-            if (! file_exists($dir)) {
-                mkdir($dir, 0755, true);
-            }
-            $request->file('qr_code')->move($dir, 'qr_code.png');
+            $request->file('qr_code')->move($imagesDir, 'qr_code.png');
             $data['qr_code_updated_at'] = now();
         }
 

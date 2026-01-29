@@ -56,7 +56,7 @@
     <div class="ticket">
         <div class="center">
             @if(isset($appearance) && $appearance->logo_updated_at)
-                <img src="{{ asset('storage/images/logo.png') }}?v={{ $appearance->logo_updated_at->timestamp }}" alt="Logo" style="max-height: 60px; margin: 0 auto 6px;">
+                <img src="{{ asset('images/logo.png') }}?v={{ $appearance->logo_updated_at->timestamp }}" alt="Logo" style="max-height: 60px; margin: 0 auto 6px;">
             @endif
             <div class="title">{{ $appearance->business_name ?? 'CarWash App' }}</div>
             @if(!empty($appearance?->business_address))
