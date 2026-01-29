@@ -33,7 +33,12 @@
                     @foreach($ticketWashes as $i => $wData)
                         @php
                             $w = $wData['wash'];
-                            $summary = $w->vehicle->brand.' | '.$w->vehicle->model.' | '.$w->vehicle->color.' | '.$w->vehicle->year.' | '.$w->vehicleType->name;
+                            $summary = $w->vehicle
+                                ? $w->vehicle->brand.' | '.$w->vehicle->model.' | '.$w->vehicle->color.' | '.$w->vehicle->year
+                                : 'Venta General';
+                            if ($w->vehicleType) {
+                                $summary .= ' | '.$w->vehicleType->name;
+                            }
                             $servicesText = $w->details->where('type','service')->map(fn($d)=>$d->service->name)->implode(', ');
                         @endphp
                         <details class="border rounded p-2 wash-item" data-total="{{ $wData['total'] }}" data-discount="{{ $wData['discount'] }}" data-washer-locked="{{ $wData['washer_locked'] ? 1 : 0 }}" ontoggle="if(this.open) editWash(this); else cancelWashForm();">
@@ -41,17 +46,17 @@
                             @foreach($wData['service_ids'] as $sid)
                                 <input type="hidden" name="washes[{{ $i }}][service_ids][]" value="{{ $sid }}">
                             @endforeach
-                            <input type="hidden" name="washes[{{ $i }}][plate]" value="{{ $w->vehicle->plate }}">
-                            <input type="hidden" name="washes[{{ $i }}][brand]" value="{{ $w->vehicle->brand }}">
-                            <input type="hidden" name="washes[{{ $i }}][model]" value="{{ $w->vehicle->model }}">
-                            <input type="hidden" name="washes[{{ $i }}][color]" value="{{ $w->vehicle->color }}">
-                            <input type="hidden" name="washes[{{ $i }}][year]" value="{{ $w->vehicle->year }}">
+                            <input type="hidden" name="washes[{{ $i }}][plate]" value="{{ optional($w->vehicle)->plate }}">
+                            <input type="hidden" name="washes[{{ $i }}][brand]" value="{{ optional($w->vehicle)->brand }}">
+                            <input type="hidden" name="washes[{{ $i }}][model]" value="{{ optional($w->vehicle)->model }}">
+                            <input type="hidden" name="washes[{{ $i }}][color]" value="{{ optional($w->vehicle)->color }}">
+                            <input type="hidden" name="washes[{{ $i }}][year]" value="{{ optional($w->vehicle)->year }}">
                             <input type="hidden" name="washes[{{ $i }}][vehicle_type_id]" value="{{ $w->vehicle_type_id }}">
                             <input type="hidden" name="washes[{{ $i }}][washer_id]" value="{{ $w->washer_id }}">
                             <input type="hidden" name="washes[{{ $i }}][tip]" value="{{ $wData['tip'] }}">
                             <input type="hidden" name="washes[{{ $i }}][commission_amount]" value="{{ $w->commission_amount }}">
                             <div class="mt-2 space-y-1 text-sm">
-                                <p>Placa: {{ $w->vehicle->plate }}</p>
+                                <p>Placa: {{ optional($w->vehicle)->plate ?? 'N/A' }}</p>
                                 <p>Lavador: {{ optional($w->washer)->name ?? 'N/A' }}</p>
                                 <p>Servicios: {{ $servicesText }}</p>
                                 @if($w->tip > 0)
