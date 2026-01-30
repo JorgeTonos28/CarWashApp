@@ -71,12 +71,6 @@
             @endif
         </div>
     </div>
-    <div class="bg-white p-4 shadow sm:rounded-lg space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h3 class="text-lg font-semibold">Vehículos atendidos</h3>
-        </div>
-        <canvas id="dashboardVehiclesChart" height="120"></canvas>
-    </div>
     <div class="grid md:grid-cols-2 gap-4">
         <div class="bg-white p-4 shadow sm:rounded-lg">
             <h3 class="text-lg font-semibold mb-2">Últimos gastos de caja chica</h3>
@@ -96,37 +90,19 @@
             </ul>
         </div>
     </div>
+    <div class="bg-white p-4 shadow sm:rounded-lg space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h3 class="text-lg font-semibold">Vehículos atendidos</h3>
+        </div>
+        <canvas
+            id="dashboardVehiclesChart"
+            height="120"
+            data-labels='@json($vehicleLabels ?? [])'
+            data-values='@json($vehicleData ?? [])'
+        ></canvas>
+    </div>
     <div>
         <h3 class="text-lg font-semibold mb-2">Movimientos</h3>
         @include('dashboard.partials.movements-table', ['movements' => $movements])
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const dashboardVehicleCtx = document.getElementById('dashboardVehiclesChart');
-    if (dashboardVehicleCtx) {
-        new Chart(dashboardVehicleCtx, {
-            type: 'line',
-            data: {
-                labels: @json($vehicleLabels ?? []),
-                datasets: [{
-                    label: 'Vehículos',
-                    data: @json($vehicleData ?? []),
-                    borderColor: '#0f766e',
-                    backgroundColor: 'rgba(15, 118, 110, 0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 0,
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    x: { ticks: { maxTicksLimit: 8 } },
-                    y: { beginAtZero: true, ticks: { precision: 0 } }
-                }
-            }
-        });
-    }
-</script>
