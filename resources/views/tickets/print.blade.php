@@ -49,6 +49,18 @@
         .qr-img { width: 100px; height: 100px; object-fit: contain; }
         .qr-text { font-size: 12px; font-weight: 600; margin-top: 4px; }
 
+        .cut-block { margin: 12px 0; text-align: center; font-size: 11px; }
+        .cut-line { letter-spacing: 1px; }
+        .cut-text { font-weight: 700; margin: 2px 0; }
+
+        .wash-receipt { margin-top: 10px; font-size: 12px; }
+        .wash-title { font-weight: 800; font-size: 14px; text-align: center; letter-spacing: 0.5px; }
+        .wash-row { display: flex; justify-content: space-between; margin-top: 4px; }
+        .plate { font-weight: 800; font-size: 13px; text-align: center; margin-top: 4px; }
+        .tip { font-weight: 900; font-size: 16px; text-align: center; margin-top: 6px; }
+        .services { margin-top: 6px; padding-left: 16px; }
+        .status { font-weight: 800; text-align: center; margin-top: 6px; font-size: 13px; }
+
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -156,6 +168,62 @@
                 <img src="{{ asset('images/qr_code.png') }}?v={{ $appearance->qr_code_updated_at->timestamp }}" class="qr-img" alt="QR">
                 <div class="qr-text">{{ $appearance->qr_description ?? 'Escanéame' }}</div>
             </div>
+        @endif
+
+        @php
+            $washReceipts = $ticket->washes->whereNotNull('washer_id');
+        @endphp
+
+        @if($washReceipts->isNotEmpty())
+            @foreach($washReceipts as $wash)
+                <div class="cut-block">
+                    <div class="cut-line">------------------------------</div>
+                    <div class="cut-text">✂ CORTAR AQUÍ</div>
+                    <div class="cut-line">------------------------------</div>
+                </div>
+
+                <div class="wash-receipt">
+                    <div class="wash-title">COMPROBANTE DE LAVADO</div>
+
+                    <div class="wash-row">
+                        <span class="bold">LAVADOR:</span>
+                        <span>{{ $wash->washer?->name ?? 'N/A' }}</span>
+                    </div>
+
+                    @php
+                        $vehicle = $wash->vehicle;
+                        $vehicleLabel = trim(($vehicle->plate ?? '---').' '.($vehicle->model ?? '').' '.($vehicle->color ?? ''));
+                    @endphp
+                    <div class="plate">VEHÍCULO: {{ $vehicleLabel }}</div>
+
+                    @if(($wash->tip ?? 0) > 0)
+                        <div class="tip">PROPINA: RD$ {{ number_format($wash->tip, 2) }}</div>
+                    @endif
+
+                    <div class="bold" style="margin-top: 6px;">SERVICIOS:</div>
+                    @php
+                        $washDetails = $ticket->details->where('ticket_wash_id', $wash->id);
+                    @endphp
+                    @if($washDetails->isNotEmpty())
+                        <ul class="services">
+                            @foreach($washDetails as $detail)
+                                @php
+                                    $genericLabel = $detail->genericServiceVariant
+                                        ? ($detail->genericServiceVariant->service?->name.' - '.$detail->genericServiceVariant->name)
+                                        : null;
+                                @endphp
+                                <li>
+                                    {{ $detail->description ?? $detail->service?->name ?? $detail->product?->name ?? $detail->drink?->name ?? $genericLabel ?? 'Detalle' }}
+                                </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <div class="muted">Sin servicios registrados.</div>
+                    @endif
+
+                    <div class="status">PAGADO</div>
+                </div>
+            @endforeach
         @endif
     </div>
 
