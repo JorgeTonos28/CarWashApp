@@ -56,6 +56,7 @@
         <div class="bg-white p-4 shadow sm:rounded-lg">
             <h3 class="text-lg font-semibold mb-2">Resumen</h3>
             <p>Efectivo: <strong>RD$ {{ number_format($cashTotal, 2) }}</strong></p>
+            <p>Tarjeta: <strong>RD$ {{ number_format($cardPayments, 2) }}</strong></p>
             <p>Transferencias: <strong>RD$ {{ number_format($transferTotal, 2) }}</strong></p>
             <p>Total facturado: <strong>RD$ {{ number_format($invoicedTotal, 2) }}</strong></p>
             <p>Caja chica: <strong>RD$ {{ number_format($pettyCashAmount, 2) }}</strong></p>
@@ -64,6 +65,7 @@
             <p>Ventas de lavados: RD$ {{ number_format($serviceTotal, 2) }}</p>
             <p>Ventas de productos: RD$ {{ number_format($productTotal, 2) }}</p>
             <p>Ventas de tragos: RD$ {{ number_format($drinkTotal, 2) }}</p>
+            <p>Ventas de servicios genéricos: RD$ {{ number_format($genericServiceTotal, 2) }}</p>
             @if(Auth::user()->role === 'admin')
                 <!-- Beneficio bruto se muestra en la sección superior -->
             @endif

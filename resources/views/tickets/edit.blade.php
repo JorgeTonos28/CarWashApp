@@ -211,6 +211,40 @@
                 </div>
             </details>
 
+            <!-- Servicios Genéricos -->
+            <details class="border rounded p-4" id="generic-service-section">
+                <summary class="cursor-pointer font-medium text-gray-700">Servicios Genéricos</summary>
+                <div class="mt-4 space-y-3">
+                    <div class="flex flex-wrap gap-3 items-end">
+                        <div class="flex-1 min-w-[180px]">
+                            <label class="block text-sm font-medium text-gray-700">Servicio Genérico</label>
+                            <select id="generic-service-select" class="form-select w-full mt-1">
+                                <option value="">-- Seleccionar --</option>
+                                @foreach ($genericServices as $service)
+                                    <option value="{{ $service->id }}">{{ $service->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="flex-1 min-w-[180px]">
+                            <label class="block text-sm font-medium text-gray-700">Variante</label>
+                            <select id="generic-variant-select" class="form-select w-full mt-1"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Precio</label>
+                            <div id="generic-variant-price" class="mt-2 text-sm font-semibold">RD$ 0.00</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Cantidad</label>
+                            <input type="number" id="generic-variant-qty" min="1" value="1" class="form-input w-24 mt-1">
+                        </div>
+                        <div>
+                            <button type="button" class="px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700" onclick="addGenericService()">Agregar</button>
+                        </div>
+                    </div>
+                    <div id="generic-service-list"></div>
+                </div>
+            </details>
+
             <!-- Cargos adicionales -->
             <details class="border rounded p-4" id="charge-section">
                 <summary class="cursor-pointer font-medium text-gray-700">Cargos Adicionales</summary>
@@ -251,12 +285,42 @@
 
             <div id="bank-field" style="{{ $ticket->payment_method === 'transferencia' ? '' : 'display:none' }}">
                 <label class="block text-sm font-medium text-gray-700">Cuenta Bancaria</label>
-                <select name="bank_account_id" class="form-select w-full mt-1">
+                <select name="bank_account_id" id="bank_account_select" class="form-select w-full mt-1" {{ $ticket->payment_method === 'transferencia' ? '' : 'disabled' }}>
                     <option value="">-- Seleccionar --</option>
                     @foreach($bankAccounts as $acc)
                         <option value="{{ $acc->id }}" {{ $acc->id == $ticket->bank_account_id ? 'selected' : '' }}>{{ $acc->bank }} - {{ $acc->account }}</option>
                     @endforeach
                 </select>
+            </div>
+
+            @php
+                $mixCash = $ticket->payments->where('payment_method', 'efectivo')->sum('amount');
+                $mixCard = $ticket->payments->where('payment_method', 'tarjeta')->sum('amount');
+                $mixTransfer = $ticket->payments->where('payment_method', 'transferencia')->sum('amount');
+            @endphp
+            <div id="mixed-fields" class="space-y-2" style="{{ $ticket->payment_method === 'mixto' ? '' : 'display:none' }}">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Monto Efectivo</label>
+                    <input type="number" name="mixed_cash_amount" step="0.01" min="0" class="form-input w-full mt-1" value="{{ $mixCash }}" oninput="updateMixedTotal()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Monto Tarjeta</label>
+                    <input type="number" name="mixed_card_amount" step="0.01" min="0" class="form-input w-full mt-1" value="{{ $mixCard }}" oninput="updateMixedTotal()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Monto Transferencia</label>
+                    <input type="number" name="mixed_transfer_amount" step="0.01" min="0" class="form-input w-full mt-1" value="{{ $mixTransfer }}" oninput="updateMixedTotal()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Cuenta Bancaria</label>
+                    <select name="bank_account_id" id="mixed_bank_account_select" class="form-select w-full mt-1" {{ $ticket->payment_method === 'mixto' ? '' : 'disabled' }}>
+                        <option value="">-- Seleccionar --</option>
+                        @foreach($bankAccounts as $acc)
+                            <option value="{{ $acc->id }}" {{ $acc->id == $ticket->bank_account_id ? 'selected' : '' }}>{{ $acc->bank }} - {{ $acc->account }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <p class="text-sm text-red-600" id="mixed-warning"></p>
             </div>
 
             <!-- Resumen y Botones -->
@@ -287,6 +351,18 @@
                 </div>
             </div>
         </x-modal>
+
+        <x-modal name="payment-confirm-modal">
+            <div class="p-6 space-y-4">
+                <h2 class="text-lg font-medium text-gray-900">¿Deseas registrar el pago ahora?</h2>
+                <p class="text-sm text-gray-600">Tienes un monto pagado indicado. Puedes pagarlo ahora o guardar la deuda.</p>
+                <div class="flex flex-wrap justify-end gap-2">
+                    <x-secondary-button x-on:click="confirmPending('cancel')">Cancelar</x-secondary-button>
+                    <x-secondary-button x-on:click="confirmPending('pending')">No, solo Guardar</x-secondary-button>
+                    <x-primary-button x-on:click="confirmPending('pay')">Sí, Pagar</x-primary-button>
+                </div>
+            </div>
+        </x-modal>
     </div>
 
     <script>
@@ -297,6 +373,8 @@
         const serviceDiscounts = @json($serviceDiscounts);
         const productDiscounts = @json($productDiscounts);
         const drinkDiscounts = @json($drinkDiscounts);
+        const genericServices = @json($genericServices);
+        const ticketGenericServices = @json($ticketGenericServices);
 
         let currentTotal = 0;
         let currentDiscount = 0;
@@ -348,12 +426,19 @@
                 total += amount;
             });
 
+            document.querySelectorAll('#generic-service-list > div').forEach(row => {
+                const qty = parseFloat(row.querySelector('input[name="generic_service_quantities[]"]').value) || 0;
+                const price = parseFloat(row.dataset.price || 0);
+                total += price * qty;
+            });
+
             currentTotal = total;
             currentDiscount = discount;
             document.getElementById('total_amount').innerText = formatCurrency(total);
             document.getElementById('discount_total').innerText = formatCurrency(discount);
             document.getElementById('paid_amount').value = currentTotal.toFixed(2);
             updateChange();
+            updateMixedTotal();
         }
 
         function updateChange() {
@@ -368,11 +453,13 @@
             } else {
                 warn.textContent = '';
             }
+            updateMixedTotal();
         }
 
         function setPaidFull(){
             document.getElementById('paid_amount').value = currentTotal.toFixed(2);
             updateChange();
+            updateMixedTotal();
         }
 
         function addProductRow() {
@@ -465,6 +552,65 @@
                 <button type="button" class="text-red-600" onclick="this.parentElement.remove(); updateTotal();">x</button>
             `;
             container.appendChild(row);
+        }
+
+        function populateGenericVariants(serviceId, selectedVariantId = '') {
+            const variantSelect = document.getElementById('generic-variant-select');
+            variantSelect.innerHTML = '';
+            const service = genericServices.find(s => String(s.id) === String(serviceId));
+            const variants = service?.variants || [];
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '-- Seleccionar --';
+            variantSelect.appendChild(placeholder);
+            variants.forEach(variant => {
+                const option = document.createElement('option');
+                option.value = variant.id;
+                option.textContent = `${variant.name} (RD$ ${formatCurrency(parseFloat(variant.price))})`;
+                if (String(variant.id) === String(selectedVariantId)) {
+                    option.selected = true;
+                }
+                variantSelect.appendChild(option);
+            });
+            updateGenericVariantPrice();
+        }
+
+        function updateGenericVariantPrice() {
+            const variantSelect = document.getElementById('generic-variant-select');
+            const serviceSelect = document.getElementById('generic-service-select');
+            const service = genericServices.find(s => String(s.id) === String(serviceSelect.value));
+            const variant = service?.variants?.find(v => String(v.id) === String(variantSelect.value));
+            const price = variant ? parseFloat(variant.price) : 0;
+            document.getElementById('generic-variant-price').textContent = `RD$ ${formatCurrency(price)}`;
+        }
+
+        function addGenericService() {
+            const serviceSelect = document.getElementById('generic-service-select');
+            const variantSelect = document.getElementById('generic-variant-select');
+            const qtyInput = document.getElementById('generic-variant-qty');
+            const service = genericServices.find(s => String(s.id) === String(serviceSelect.value));
+            const variant = service?.variants?.find(v => String(v.id) === String(variantSelect.value));
+            const qty = parseInt(qtyInput.value || 1, 10);
+            if (!service || !variant) return;
+            addGenericServiceRow(variant, qty, service.name);
+            variantSelect.value = '';
+            qtyInput.value = 1;
+            updateGenericVariantPrice();
+        }
+
+        function addGenericServiceRow(variant, qty, serviceName) {
+            const container = document.getElementById('generic-service-list');
+            const row = document.createElement('div');
+            row.classList.add('flex', 'gap-4', 'mb-2', 'items-center');
+            row.dataset.price = variant.price;
+            row.innerHTML = `
+                <input type="hidden" name="generic_service_variant_ids[]" value="${variant.id}">
+                <div class="flex-1 text-sm">${serviceName} - ${variant.name} (RD$ ${formatCurrency(parseFloat(variant.price))})</div>
+                <input type="number" name="generic_service_quantities[]" min="1" class="form-input w-24" value="${qty}" oninput="updateTotal()">
+                <button type="button" class="text-red-600" onclick="this.parentElement.remove(); updateTotal();">x</button>
+            `;
+            container.appendChild(row);
+            updateTotal();
         }
 
         function showWashForm() {
@@ -644,8 +790,42 @@
 
         function toggleBank() {
             const field = document.getElementById('bank-field');
+            const mixedField = document.getElementById('mixed-fields');
             const method = document.getElementById('payment_method').value;
             field.style.display = method === 'transferencia' ? '' : 'none';
+            mixedField.style.display = method === 'mixto' ? '' : 'none';
+            const bankSelect = document.getElementById('bank_account_select');
+            const mixedBankSelect = document.getElementById('mixed_bank_account_select');
+            if (bankSelect) {
+                bankSelect.disabled = method !== 'transferencia';
+            }
+            if (mixedBankSelect) {
+                mixedBankSelect.disabled = method !== 'mixto';
+            }
+            if (method === 'mixto') {
+                updateMixedTotal();
+            } else {
+                document.getElementById('mixed-warning').textContent = '';
+            }
+        }
+
+        function getMixedTotal() {
+            const cash = parseFloat(document.querySelector('[name="mixed_cash_amount"]')?.value || 0);
+            const card = parseFloat(document.querySelector('[name="mixed_card_amount"]')?.value || 0);
+            const transfer = parseFloat(document.querySelector('[name="mixed_transfer_amount"]')?.value || 0);
+            return cash + card + transfer;
+        }
+
+        function updateMixedTotal() {
+            if (document.getElementById('payment_method').value !== 'mixto') return;
+            const mixedTotal = getMixedTotal();
+            const paid = parseFloat(document.getElementById('paid_amount').value || 0);
+            const warning = document.getElementById('mixed-warning');
+            if (Math.abs(mixedTotal - paid) > 0.01) {
+                warning.textContent = 'La suma de los montos mixtos debe coincidir con el monto pagado.';
+            } else {
+                warning.textContent = '';
+            }
         }
 
         const plateInput = document.getElementById('plate');
@@ -691,7 +871,8 @@
             const input = document.createElement('input');
             input.type = 'text';
             input.className = 'form-input w-full mt-1';
-            input.value = select.options[select.selectedIndex]?.text || '';
+            let selectedText = select.options[select.selectedIndex]?.text || '';
+            input.value = selectedText;
             select._searchInput = input;
             wrapper.appendChild(input);
             const list = document.createElement('ul');
@@ -700,11 +881,32 @@
             select.parentNode.insertBefore(wrapper, select);
 
             const options = Array.from(select.options);
+            const updateSelectedText = () => {
+                selectedText = select.options[select.selectedIndex]?.text || '';
+            };
             function show(filter=''){list.innerHTML=''; const f=filter.toLowerCase(); options.forEach(o=>{if(!o.value) return; if(o.text.toLowerCase().includes(f)){const li=document.createElement('li');li.textContent=o.text; li.dataset.val=o.value; li.className='px-2 py-1 cursor-pointer hover:bg-gray-200'; list.appendChild(li);}}); list.classList.toggle('hidden', list.children.length===0);}
-            input.addEventListener('focus', ()=>show());
+            input.addEventListener('focus', ()=>{
+                if (options.some(o => o.value && o.text === input.value)) {
+                    input.value = '';
+                }
+                show();
+            });
+            input.addEventListener('click', ()=>{
+                if (options.some(o => o.value && o.text === input.value)) {
+                    input.value = '';
+                }
+                show();
+            });
             input.addEventListener('input', ()=>show(input.value));
-            list.addEventListener('mousedown', e=>{const li=e.target.closest('li'); if(!li) return; e.preventDefault(); input.value=li.textContent; select.value=li.dataset.val; select.dispatchEvent(new Event('change')); list.classList.add('hidden');});
-            input.addEventListener('blur', ()=>setTimeout(()=>list.classList.add('hidden'),200));
+            list.addEventListener('mousedown', e=>{const li=e.target.closest('li'); if(!li) return; e.preventDefault(); input.value=li.textContent; select.value=li.dataset.val; select.dispatchEvent(new Event('change')); updateSelectedText(); list.classList.add('hidden');});
+            input.addEventListener('blur', ()=>setTimeout(()=>{
+                if (input.value.trim() === '') {
+                    updateSelectedText();
+                    input.value = selectedText;
+                }
+                list.classList.add('hidden');
+            },200));
+            select.addEventListener('change', updateSelectedText);
         }
 
         const maxYear = {{ date('Y') }};
@@ -802,6 +1004,23 @@
             }
         }
 
+        const genericServiceSelect = document.getElementById('generic-service-select');
+        const genericVariantSelect = document.getElementById('generic-variant-select');
+        if (genericServiceSelect && genericVariantSelect) {
+            populateGenericVariants(genericServiceSelect.value);
+            genericServiceSelect.addEventListener('change', (e) => populateGenericVariants(e.target.value));
+            genericVariantSelect.addEventListener('change', updateGenericVariantPrice);
+        }
+
+        if (Array.isArray(ticketGenericServices)) {
+            ticketGenericServices.forEach(item => {
+                const service = genericServices.find(s => String(s.id) === String(item.service_id));
+                const variant = service?.variants?.find(v => String(v.id) === String(item.variant_id));
+                if (service && variant) {
+                    addGenericServiceRow(variant, item.qty, service.name);
+                }
+            });
+        }
 
         document.querySelectorAll('select[data-searchable]').forEach(convertSelectToSearchable);
 
@@ -811,16 +1030,21 @@
         function ticketForm() {
             return {
                 errors: [],
-                async submitForm(e) {
+                pendingSubmission: null,
+                async submitForm(e, options = {}) {
                     const form = this.$refs.form;
-                    const submitter = e?.submitter;
+                    const submitter = options.submitter ?? e?.submitter;
                     this.errors = [];
 
-                    if (submitter?.value === 'pending') {
+                    if (!options.skipConfirm && submitter?.value === 'pending') {
                         const paid = form.querySelector('[name=paid_amount]').value;
                         if (paid && parseFloat(paid) > 0) {
-                            this.errors.push('Si desea pagar el ticket use el botón "Pagar".');
-                            this.showErrors();
+                            this.pendingSubmission = {
+                                form,
+                                pendingButton: submitter,
+                                payButton: form.querySelector('button[value="pay"]')
+                            };
+                            window.dispatchEvent(new CustomEvent('open-modal', { detail: 'payment-confirm-modal' }));
                             return;
                         }
                     }
@@ -832,10 +1056,22 @@
                         const amount = parseFloat(form.querySelectorAll('#charge-list input[name="charge_amounts[]"]')[idx].value || 0);
                         return input.value.trim() !== '' && amount > 0;
                     });
-                    if (!hasWash && !hasProduct && !hasDrink && !hasCharge) {
-                        this.errors.push('Debe agregar al menos un servicio, producto, trago o cargo adicional');
+                    const hasGeneric = Array.from(form.querySelectorAll('#generic-service-list input[name="generic_service_variant_ids[]"]')).some(input => input.value);
+                    if (!hasWash && !hasProduct && !hasDrink && !hasCharge && !hasGeneric) {
+                        this.errors.push('Debe agregar al menos un servicio, producto, trago, servicio genérico o cargo adicional');
                         this.showErrors();
                         return;
+                    }
+
+                    const paymentMethod = form.querySelector('#payment_method')?.value;
+                    if (submitter?.value !== 'pending' && paymentMethod === 'mixto') {
+                        const mixedTotal = getMixedTotal();
+                        const paid = parseFloat(form.querySelector('[name=paid_amount]').value || 0);
+                        if (Math.abs(mixedTotal - paid) > 0.01) {
+                            this.errors.push('La suma de los montos mixtos debe ser igual al monto pagado.');
+                            this.showErrors();
+                            return;
+                        }
                     }
 
                     try {
@@ -868,6 +1104,27 @@
                     window.dispatchEvent(new CustomEvent('close-modal', { detail: 'error-modal' }));
                 }
                 ,
+                confirmPending(action) {
+                    if (!this.pendingSubmission) {
+                        return;
+                    }
+                    const { form, pendingButton, payButton } = this.pendingSubmission;
+                    this.pendingSubmission = null;
+                    window.dispatchEvent(new CustomEvent('close-modal', { detail: 'payment-confirm-modal' }));
+                    if (action === 'cancel') {
+                        return;
+                    }
+                    if (action === 'pending') {
+                        form.querySelector('[name=paid_amount]').value = 0;
+                        form.querySelectorAll('[name="mixed_cash_amount"], [name="mixed_card_amount"], [name="mixed_transfer_amount"]').forEach(input => {
+                            input.value = 0;
+                        });
+                        updateChange();
+                        updateMixedTotal();
+                    }
+                    const nextSubmitter = action === 'pay' ? payButton : pendingButton;
+                    this.submitForm(null, { submitter: nextSubmitter, skipConfirm: true });
+                },
                 showErrors() {
                     const list = document.getElementById('error-list');
                     list.innerHTML = '';

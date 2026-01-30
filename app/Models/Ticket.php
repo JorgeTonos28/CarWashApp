@@ -66,4 +66,9 @@ class Ticket extends Model
     {
         return $this->hasMany(InventoryMovement::class);
     }
+
+    public function payments()
+    {
+        return $this->hasMany(TicketPayment::class);
+    }
 }

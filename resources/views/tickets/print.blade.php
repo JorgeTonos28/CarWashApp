@@ -99,9 +99,17 @@
                     <tr>
                         <td class="col-qty">{{ $detail->quantity }}</td>
                         <td class="col-desc">
-                            {{ $detail->description ?? $detail->service?->name ?? $detail->product?->name ?? $detail->drink?->name ?? 'Detalle' }}
+                            @php
+                                $genericLabel = $detail->genericServiceVariant
+                                    ? ($detail->genericServiceVariant->service?->name.' - '.$detail->genericServiceVariant->name)
+                                    : null;
+                            @endphp
+                            {{ $detail->description ?? $detail->service?->name ?? $detail->product?->name ?? $detail->drink?->name ?? $genericLabel ?? 'Detalle' }}
                             @if($detail->service)
                                 <br><span class="muted">({{ $detail->service->name }})</span>
+                            @endif
+                            @if($detail->genericServiceVariant)
+                                <br><span class="muted">({{ $genericLabel }})</span>
                             @endif
                         </td>
                         <td class="col-amt">${{ number_format($detail->subtotal, 2) }}</td>

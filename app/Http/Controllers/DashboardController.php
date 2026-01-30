@@ -13,6 +13,7 @@ use App\Models\BankAccount;
 use App\Models\Washer;
 use App\Models\WasherMovement;
 use App\Models\Product;
+use App\Models\TicketPayment;
 
 class DashboardController extends Controller
 {
@@ -41,6 +42,7 @@ class DashboardController extends Controller
         $serviceTotal = 0;
         $productTotal = 0;
         $drinkTotal = 0;
+        $genericServiceTotal = 0;
 
         foreach ($tickets as $ticket) {
             foreach ($ticket->details as $detail) {
@@ -55,23 +57,31 @@ class DashboardController extends Controller
                     case 'drink':
                         $drinkTotal += $subtotal;
                         break;
+                    case 'generic_service':
+                        $genericServiceTotal += $subtotal;
+                        break;
                 }
             }
         }
 
-        $cashPayments = Ticket::where('canceled', false)
-            ->where('pending', false)
-            ->whereDate('paid_at', '>=', $start)
-            ->whereDate('paid_at', '<=', $end)
-            ->where('payment_method', '!=', 'transferencia')
-            ->sum('total_amount');
+        $paymentQuery = TicketPayment::whereHas('ticket', function ($q) use ($start, $end) {
+            $q->where('canceled', false)
+                ->where('pending', false)
+                ->whereDate('paid_at', '>=', $start)
+                ->whereDate('paid_at', '<=', $end);
+        });
 
-        $transferTotal = Ticket::where('canceled', false)
-            ->where('pending', false)
-            ->whereDate('paid_at', '>=', $start)
-            ->whereDate('paid_at', '<=', $end)
+        $cashPayments = (clone $paymentQuery)
+            ->where('payment_method', 'efectivo')
+            ->sum('amount');
+
+        $cardPayments = (clone $paymentQuery)
+            ->where('payment_method', 'tarjeta')
+            ->sum('amount');
+
+        $transferTotal = (clone $paymentQuery)
             ->where('payment_method', 'transferencia')
-            ->sum('total_amount');
+            ->sum('amount');
 
         $pettyCashAmount = PettyCashSetting::amountForDate($start);
         $pettyCashExpenses = PettyCashExpense::whereDate('created_at', '>=', $start)
@@ -80,8 +90,8 @@ class DashboardController extends Controller
             ->get();
         $pettyCashTotal = $pettyCashExpenses->sum('amount');
 
-        $totalFacturado = $cashPayments + $transferTotal + $pettyCashAmount - $pettyCashTotal;
-        $invoicedTotal = $cashPayments + $transferTotal;
+        $totalFacturado = $cashPayments + $cardPayments + $transferTotal + $pettyCashAmount - $pettyCashTotal;
+        $invoicedTotal = $cashPayments + $cardPayments + $transferTotal;
 
         $washerPayments = WasherPayment::whereDate('payment_date', '>=', $start)
             ->whereDate('payment_date', '<=', $end)
@@ -89,13 +99,15 @@ class DashboardController extends Controller
 
         $cashTotal = $cashPayments - $washerPayments - $pettyCashTotal;
 
-        $bankAccountTotals = Ticket::selectRaw('bank_account_id, SUM(total_amount) as total')
+        $bankAccountTotals = TicketPayment::selectRaw('bank_account_id, SUM(amount) as total')
             ->with('bankAccount')
-            ->where('canceled', false)
-            ->where('pending', false)
-            ->whereDate('paid_at', '>=', $start)
-            ->whereDate('paid_at', '<=', $end)
             ->where('payment_method', 'transferencia')
+            ->whereHas('ticket', function ($q) use ($start, $end) {
+                $q->where('canceled', false)
+                    ->where('pending', false)
+                    ->whereDate('paid_at', '>=', $start)
+                    ->whereDate('paid_at', '<=', $end);
+            })
             ->groupBy('bank_account_id')
             ->get();
 
@@ -235,12 +247,14 @@ class DashboardController extends Controller
                 'totalFacturado',
                 'invoicedTotal',
                 'cashTotal',
+                'cardPayments',
                 'transferTotal',
                 'bankAccountTotals',
                 'washerPayDue',
                 'serviceTotal',
                 'productTotal',
                 'drinkTotal',
+                'genericServiceTotal',
                 'grossProfit',
                 'pettyCashTotal',
                 'lastExpenses',
@@ -260,12 +274,14 @@ class DashboardController extends Controller
             'totalFacturado' => $totalFacturado,
             'invoicedTotal' => $invoicedTotal,
             'cashTotal' => $cashTotal,
+            'cardPayments' => $cardPayments,
             'transferTotal' => $transferTotal,
             'bankAccountTotals' => $bankAccountTotals,
             'washerPayDue' => $washerPayDue,
             'serviceTotal' => $serviceTotal,
             'productTotal' => $productTotal,
             'drinkTotal' => $drinkTotal,
+            'genericServiceTotal' => $genericServiceTotal,
             'grossProfit' => $grossProfit,
             'lastExpenses' => $lastExpenses,
             'movements' => $movements,

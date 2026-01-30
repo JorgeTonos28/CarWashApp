@@ -30,7 +30,11 @@
                     <td class="px-4 py-2">{{ $ticket->customer_name }}</td>
                     <td class="px-4 py-2">
                         {{ $ticket->details->pluck('type')->unique()->map(fn($t) => match($t){
-                            'service' => 'Lavado', 'product' => 'Productos', 'drink' => 'Tragos', 'extra' => 'Cargos'
+                            'service' => 'Lavado',
+                            'product' => 'Productos',
+                            'drink' => 'Tragos',
+                            'extra' => 'Cargos',
+                            'generic_service' => 'Servicios Genéricos',
                         })->implode(', ') }}
                     </td>
                     <td class="px-4 py-2">RD$ {{ number_format($ticket->discount_total, 2) }}</td>
@@ -93,7 +97,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Método de Pago</label>
-                <select name="payment_method" x-model="method" class="form-select w-full" required>
+                <select name="payment_method" x-model="method" class="form-select w-full" required x-on:change="syncMixed()">
                     <option value="efectivo">Efectivo</option>
                     <option value="tarjeta">Tarjeta</option>
                     <option value="transferencia">Transferencia</option>
@@ -102,12 +106,35 @@
             </div>
             <div x-show="method === 'transferencia'">
                 <label class="block text-sm font-medium text-gray-700">Cuenta Bancaria</label>
-                <select name="bank_account_id" class="form-select w-full">
+                <select name="bank_account_id" class="form-select w-full" x-bind:disabled="method !== 'transferencia'">
                     <option value="">-- Seleccionar --</option>
                     @foreach($bankAccounts as $acc)
                         <option value="{{ $acc->id }}">{{ $acc->bank }} - {{ $acc->account }}</option>
                     @endforeach
                 </select>
+            </div>
+            <div x-show="method === 'mixto'" class="space-y-2">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Monto Efectivo</label>
+                    <input type="number" name="mixed_cash_amount" step="0.01" min="0" class="form-input w-full" x-model.number="mixedCash" x-on:input="syncMixed()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Monto Tarjeta</label>
+                    <input type="number" name="mixed_card_amount" step="0.01" min="0" class="form-input w-full" x-model.number="mixedCard" x-on:input="syncMixed()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Monto Transferencia</label>
+                    <input type="number" name="mixed_transfer_amount" step="0.01" min="0" class="form-input w-full" x-model.number="mixedTransfer" x-on:input="syncMixed()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Cuenta Bancaria</label>
+                    <select name="bank_account_id" class="form-select w-full" x-bind:disabled="method !== 'mixto'">
+                        <option value="">-- Seleccionar --</option>
+                        @foreach($bankAccounts as $acc)
+                            <option value="{{ $acc->id }}">{{ $acc->bank }} - {{ $acc->account }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
             <div class="text-sm space-x-4">
                 <span>Total: RD$ {{ number_format($ticket->total_amount,2) }}</span>
@@ -124,6 +151,7 @@
         <form method="POST" action="{{ route('tickets.update', $ticket) }}" class="p-6 space-y-4">
             @csrf
             @method('PUT')
+            <input type="hidden" name="paid_amount" value="{{ $ticket->paid_amount }}">
             <div class="text-sm space-y-1">
                 <p><strong>Cliente:</strong> {{ $ticket->customer_name }}</p>
                 @if($ticket->customer_phone)
@@ -152,7 +180,10 @@
                                 'service' => $d->service->name ?? 'Servicio',
                                 'product' => $d->product->name ?? 'Producto',
                                 'drink' => $d->drink->name ?? 'Trago',
-                                'extra' => $d->description ?? 'Cargo'
+                                'extra' => $d->description ?? 'Cargo',
+                                'generic_service' => $d->genericServiceVariant
+                                    ? $d->genericServiceVariant->service?->name.' - '.$d->genericServiceVariant->name
+                                    : 'Servicio Genérico',
                             } }} x{{ $d->quantity }} - RD$ {{ number_format($d->unit_price,2) }}
                         </li>
                     @endforeach
@@ -208,7 +239,12 @@
                     @endforeach
                 </div>
             @endif
-            <div x-data="{method: '{{ $ticket->payment_method }}'}">
+            @php
+                $mixCash = $ticket->payments->where('payment_method', 'efectivo')->sum('amount');
+                $mixCard = $ticket->payments->where('payment_method', 'tarjeta')->sum('amount');
+                $mixTransfer = $ticket->payments->where('payment_method', 'transferencia')->sum('amount');
+            @endphp
+            <div x-data="{method: '{{ $ticket->payment_method }}', mixedCash: {{ $mixCash }}, mixedCard: {{ $mixCard }}, mixedTransfer: {{ $mixTransfer }}}">
                 <label class="block text-sm font-medium text-gray-700">Método de Pago</label>
                 <select name="payment_method" x-model="method" class="form-select w-full">
                     <option value="efectivo">Efectivo</option>
@@ -218,12 +254,35 @@
                 </select>
                 <div x-show="method === 'transferencia'" class="mt-2">
                     <label class="block text-sm font-medium text-gray-700">Cuenta Bancaria</label>
-                    <select name="bank_account_id" class="form-select w-full">
+                    <select name="bank_account_id" class="form-select w-full" x-bind:disabled="method !== 'transferencia'">
                         <option value="">-- Seleccionar --</option>
                         @foreach($bankAccounts as $acc)
                             <option value="{{ $acc->id }}" {{ $acc->id == $ticket->bank_account_id ? 'selected' : '' }}>{{ $acc->bank }} - {{ $acc->account }}</option>
                         @endforeach
                     </select>
+                </div>
+                <div x-show="method === 'mixto'" class="mt-2 space-y-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Monto Efectivo</label>
+                        <input type="number" name="mixed_cash_amount" step="0.01" min="0" class="form-input w-full" x-model.number="mixedCash">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Monto Tarjeta</label>
+                        <input type="number" name="mixed_card_amount" step="0.01" min="0" class="form-input w-full" x-model.number="mixedCard">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Monto Transferencia</label>
+                        <input type="number" name="mixed_transfer_amount" step="0.01" min="0" class="form-input w-full" x-model.number="mixedTransfer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Cuenta Bancaria</label>
+                        <select name="bank_account_id" class="form-select w-full" x-bind:disabled="method !== 'mixto'">
+                            <option value="">-- Seleccionar --</option>
+                            @foreach($bankAccounts as $acc)
+                                <option value="{{ $acc->id }}" {{ $acc->id == $ticket->bank_account_id ? 'selected' : '' }}>{{ $acc->bank }} - {{ $acc->account }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="mt-6 flex justify-end">

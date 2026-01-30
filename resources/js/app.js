@@ -73,8 +73,19 @@ Alpine.data('filterTable', (url, extra = {}) => ({
 Alpine.data('payForm', (total) => ({
     paid: total,
     method: 'efectivo',
+    mixedCash: 0,
+    mixedCard: 0,
+    mixedTransfer: 0,
     get change() {
         return (this.paid || 0) - total;
+    },
+    get mixedTotal() {
+        return (this.mixedCash || 0) + (this.mixedCard || 0) + (this.mixedTransfer || 0);
+    },
+    syncMixed() {
+        if (this.method === 'mixto') {
+            this.paid = this.mixedTotal;
+        }
     },
     formatCurrency(v) {
         return (v).toLocaleString('es-DO', {
