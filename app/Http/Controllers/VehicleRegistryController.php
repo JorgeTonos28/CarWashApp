@@ -63,6 +63,10 @@ class VehicleRegistryController extends Controller
             ->groupBy('visit_date')
             ->pluck('total', 'visit_date');
 
+        $billedTotal = $tickets
+            ->filter(fn ($ticket) => $ticket->created_at->between($start, $end))
+            ->sum('total_amount');
+
         $period = CarbonPeriod::create($start, '1 day', $end);
         $labels = [];
         $data = [];
@@ -78,6 +82,7 @@ class VehicleRegistryController extends Controller
             'chartLabels' => $labels,
             'chartData' => $data,
             'timeframe' => $timeframe,
+            'billedTotal' => $billedTotal,
         ]);
     }
 

@@ -13,6 +13,7 @@
                 <div><strong>Teléfono:</strong> {{ $customer->phone ?? '-' }}</div>
                 <div><strong>Email:</strong> {{ $customer->email ?? '-' }}</div>
                 <div><strong>Visitas:</strong> {{ $customer->tickets->count() }}</div>
+                <div><strong>Total facturado:</strong> RD$ {{ number_format($customer->tickets->sum('total_amount'), 2) }}</div>
             </div>
         </div>
 
@@ -31,6 +32,7 @@
                     </select>
                 </form>
             </div>
+            <p class="text-sm text-gray-600">Total facturado en el período: <strong>RD$ {{ number_format($billedTotal, 2) }}</strong></p>
             <canvas id="customerVisitsChart" height="120"></canvas>
         </div>
 

@@ -13,6 +13,7 @@
                 <div><strong>Modelo:</strong> {{ $vehicle->model }}</div>
                 <div><strong>Color:</strong> {{ $vehicle->color }}</div>
                 <div><strong>Año:</strong> {{ $vehicle->year ?? '-' }}</div>
+                <div><strong>Total facturado:</strong> RD$ {{ number_format($tickets->sum('total_amount'), 2) }}</div>
             </div>
         </div>
 
@@ -31,6 +32,7 @@
                     </select>
                 </form>
             </div>
+            <p class="text-sm text-gray-600">Total facturado en el período: <strong>RD$ {{ number_format($billedTotal, 2) }}</strong></p>
             <canvas id="vehicleVisitsChart" height="120"></canvas>
         </div>
 

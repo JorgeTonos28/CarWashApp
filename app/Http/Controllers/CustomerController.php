@@ -59,6 +59,10 @@ class CustomerController extends Controller
             ->groupBy('visit_date')
             ->pluck('total', 'visit_date');
 
+        $billedTotal = $customer->tickets()
+            ->whereBetween('created_at', [$start, $end])
+            ->sum('total_amount');
+
         $period = CarbonPeriod::create($start, '1 day', $end);
         $labels = [];
         $data = [];
@@ -73,6 +77,7 @@ class CustomerController extends Controller
             'chartLabels' => $labels,
             'chartData' => $data,
             'timeframe' => $timeframe,
+            'billedTotal' => $billedTotal,
         ]);
     }
 
