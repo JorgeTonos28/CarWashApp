@@ -191,7 +191,10 @@ class TicketController extends Controller
 
     public function create()
     {
-        $services = Service::where('active', true)->with('prices')->get();
+        $services = Service::where('active', true)
+            ->whereHas('prices')
+            ->with('prices')
+            ->get();
         $servicePrices = [];
         foreach ($services as $service) {
             foreach ($service->prices as $price) {
@@ -688,7 +691,10 @@ class TicketController extends Controller
 
         $ticket->loadMissing('details.genericServiceVariant.genericService', 'payments');
 
-        $services = Service::where('active', true)->with('prices')->get();
+        $services = Service::where('active', true)
+            ->whereHas('prices')
+            ->with('prices')
+            ->get();
         $servicePrices = [];
         foreach ($services as $service) {
             foreach ($service->prices as $price) {
@@ -1306,6 +1312,7 @@ class TicketController extends Controller
             'details.genericServiceVariant.service',
             'vehicle',
             'washer',
+            'washes.washer',
         ])->findOrFail($id);
 
         return view('tickets.print', compact('ticket'));

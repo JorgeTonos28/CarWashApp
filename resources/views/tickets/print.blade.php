@@ -76,7 +76,18 @@
             </div>
             <div class="right">
                 <div>CLIENTE: {{ \Illuminate\Support\Str::limit($ticket->customer_name ?? 'Visitante', 15) }}</div>
-                <div>LAVADOR: {{ \Illuminate\Support\Str::limit($ticket->washer?->name ?? 'N/A', 15) }}</div>
+                @php
+                    $washerName = $ticket->washer?->name;
+                    if (! $washerName) {
+                        $washers = $ticket->washes->pluck('washer')->filter();
+                        if ($washers->count() === 1) {
+                            $washerName = $washers->first()?->name;
+                        } elseif ($washers->count() > 1) {
+                            $washerName = 'Varios';
+                        }
+                    }
+                @endphp
+                <div>LAVADOR: {{ \Illuminate\Support\Str::limit($washerName ?? 'N/A', 15) }}</div>
             </div>
         </div>
 

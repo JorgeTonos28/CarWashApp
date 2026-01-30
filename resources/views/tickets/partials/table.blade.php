@@ -193,7 +193,12 @@
                 <p><strong>Descuento:</strong> RD$ {{ number_format($ticket->discount_total, 2) }}</p>
                 <p><strong>Total:</strong> RD$ {{ number_format($ticket->total_amount, 2) }}</p>
             </div>
-            @if($ticket->washes->count())
+            @php
+                $hasServiceDetails = $ticket->details->where('type', 'service')->isNotEmpty();
+                $hasWashServices = $ticket->washes->filter(fn($wash) => $wash->details->where('type', 'service')->isNotEmpty())->isNotEmpty();
+                $showWasherSection = $hasServiceDetails || $hasWashServices;
+            @endphp
+            @if($showWasherSection)
                 @php
                     $canChangeWasher = true;
                     if(!$ticket->pending){
