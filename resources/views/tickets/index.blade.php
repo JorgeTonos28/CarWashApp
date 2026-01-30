@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div x-data="filterTable('{{ route('tickets.index') }}', {selected: null, selectedPending: false, selectedNoWasher: false, selectedCreated: null, pending: {{ $filters['pending'] ?? 'null' }}, role: '{{ Auth::user()->role }}', editBase: '{{ url('tickets') }}', printBase: '{{ url('tickets/print') }}', printOptions: true})" x-on:click.away="selected = null; selectedPending=false; selectedNoWasher=false" class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div x-data="filterTable('{{ route('tickets.index') }}', {selected: null, selectedPending: false, selectedNoWasher: false, selectedHasWash: false, selectedCreated: null, pending: {{ $filters['pending'] ?? 'null' }}, role: '{{ Auth::user()->role }}', editBase: '{{ url('tickets') }}', printBase: '{{ url('tickets/print') }}', printOptions: true})" x-on:click.away="selected = null; selectedPending=false; selectedNoWasher=false; selectedHasWash=false" class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
 
 
         <div class="mb-4 flex flex-wrap items-end gap-4">

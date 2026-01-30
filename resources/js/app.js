@@ -68,8 +68,14 @@ Alpine.data('filterTable', (url, extra = {}) => ({
     openPrintTab() {
         if (!this.selected || !this.printBase) return;
         if (this.printOptions) {
-            this.printMode = 'both';
-            this.$dispatch('open-modal', 'print-options');
+            const hasWash = !!this.selectedHasWash;
+            const hasWasher = !this.selectedNoWasher;
+            if (hasWash && hasWasher) {
+                this.printMode = 'both';
+                this.$dispatch('open-modal', 'print-options');
+            } else {
+                this.openPrintWith('invoice');
+            }
             return;
         }
         window.open(`${this.printBase}/${this.selected}`, '_blank');
