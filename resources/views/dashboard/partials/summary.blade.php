@@ -74,23 +74,6 @@
     <div class="bg-white p-4 shadow sm:rounded-lg space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h3 class="text-lg font-semibold">Vehículos atendidos</h3>
-            <form method="GET" class="flex items-center gap-2">
-                @if(request()->filled('start'))
-                    <input type="hidden" name="start" value="{{ request('start') }}">
-                @endif
-                @if(request()->filled('end'))
-                    <input type="hidden" name="end" value="{{ request('end') }}">
-                @endif
-                <label class="text-sm text-gray-600">Periodo</label>
-                <select name="vehicle_timeframe" class="form-select" onchange="this.form.submit()">
-                    <option value="1m" @selected(($vehicleTimeframe ?? '6m') === '1m')>Último mes</option>
-                    <option value="3m" @selected(($vehicleTimeframe ?? '6m') === '3m')>Últimos 3 meses</option>
-                    <option value="6m" @selected(($vehicleTimeframe ?? '6m') === '6m')>Últimos 6 meses</option>
-                    <option value="1y" @selected(($vehicleTimeframe ?? '6m') === '1y')>Último año</option>
-                    <option value="2y" @selected(($vehicleTimeframe ?? '6m') === '2y')>Últimos 2 años</option>
-                    <option value="5y" @selected(($vehicleTimeframe ?? '6m') === '5y')>Últimos 5 años</option>
-                </select>
-            </form>
         </div>
         <canvas id="dashboardVehiclesChart" height="120"></canvas>
     </div>
