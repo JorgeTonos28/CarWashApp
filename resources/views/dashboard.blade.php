@@ -56,6 +56,9 @@
                 'pettyCashTotal' => $pettyCashTotal,
                 'accountsReceivable' => $accountsReceivable,
                 'pendingTickets' => $pendingTickets,
+                'vehicleLabels' => $vehicleChartLabels,
+                'vehicleData' => $vehicleChartData,
+                'vehicleTimeframe' => $vehicleTimeframe,
             ])
         </div>
     </div>

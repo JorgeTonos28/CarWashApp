@@ -627,7 +627,6 @@ class TicketController extends Controller
                 if (!$vehicle) {
                     $vehicle = Vehicle::create([
                         'customer_name' => $request->customer_name,
-                        'customer_id' => optional($customer)->id,
                         'vehicle_type_id' => $request->vehicle_type_id,
                         'plate' => $request->plate,
                         'brand' => $request->brand,
@@ -639,9 +638,6 @@ class TicketController extends Controller
                     $updates = [];
                     if (!$vehicle->year && $request->filled('year')) {
                         $updates['year'] = $request->year;
-                    }
-                    if ($customer && $vehicle->customer_id !== $customer->id) {
-                        $updates['customer_id'] = $customer->id;
                     }
                     if ($updates) {
                         $vehicle->update($updates);
@@ -2260,7 +2256,6 @@ class TicketController extends Controller
                 if (!$vehicle) {
                     $vehicle = Vehicle::create([
                         'customer_name' => $request->customer_name,
-                        'customer_id' => optional($customer)->id,
                         'vehicle_type_id' => $washData['vehicle_type_id'],
                         'plate' => $washData['plate'],
                         'brand' => $washData['brand'],
@@ -2272,9 +2267,6 @@ class TicketController extends Controller
                     $updates = [];
                     if (!$vehicle->year && !empty($washData['year'])) {
                         $updates['year'] = $washData['year'];
-                    }
-                    if ($customer && $vehicle->customer_id !== $customer->id) {
-                        $updates['customer_id'] = $customer->id;
                     }
                     if ($updates) {
                         $vehicle->update($updates);

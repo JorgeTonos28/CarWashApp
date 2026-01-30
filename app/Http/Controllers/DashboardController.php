@@ -14,6 +14,8 @@ use App\Models\Washer;
 use App\Models\WasherMovement;
 use App\Models\Product;
 use App\Models\TicketPayment;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 
 class DashboardController extends Controller
 {
@@ -182,6 +184,24 @@ class DashboardController extends Controller
 
         $lastExpenses = $pettyCashExpenses->take(5);
 
+        [$vehicleStart, $vehicleEnd, $vehicleTimeframe] = $this->resolveTimeframe($request->input('vehicle_timeframe', '6m'));
+        $vehicleCounts = TicketWash::whereHas('ticket', function ($q) {
+                $q->where('canceled', false);
+            })
+            ->whereBetween('created_at', [$vehicleStart, $vehicleEnd])
+            ->selectRaw('DATE(created_at) as visit_date, COUNT(*) as total')
+            ->groupBy('visit_date')
+            ->pluck('total', 'visit_date');
+
+        $vehiclePeriod = CarbonPeriod::create($vehicleStart, '1 day', $vehicleEnd);
+        $vehicleLabels = [];
+        $vehicleData = [];
+        foreach ($vehiclePeriod as $date) {
+            $label = $date->format('Y-m-d');
+            $vehicleLabels[] = $label;
+            $vehicleData[] = (int) ($vehicleCounts[$label] ?? 0);
+        }
+
         $movements = [];
         foreach ($tickets as $t) {
             $movements[] = [
@@ -262,7 +282,10 @@ class DashboardController extends Controller
                 'accountsReceivable',
                 'pendingTickets',
                 'washerDebts',
-                'pettyCashAmount'
+                'pettyCashAmount',
+                'vehicleLabels',
+                'vehicleData',
+                'vehicleTimeframe'
             ));
         }
 
@@ -291,7 +314,25 @@ class DashboardController extends Controller
             'washerDebts' => $washerDebts,
             'pettyCashAmount' => $pettyCashAmount,
             'lowStockProducts' => $lowStockProducts,
+            'vehicleChartLabels' => $vehicleLabels,
+            'vehicleChartData' => $vehicleData,
+            'vehicleTimeframe' => $vehicleTimeframe,
         ]);
+    }
+
+    private function resolveTimeframe(string $timeframe): array
+    {
+        $end = Carbon::now()->endOfDay();
+        $start = match ($timeframe) {
+            '1m' => Carbon::now()->subMonth()->startOfDay(),
+            '3m' => Carbon::now()->subMonths(3)->startOfDay(),
+            '1y' => Carbon::now()->subYear()->startOfDay(),
+            '2y' => Carbon::now()->subYears(2)->startOfDay(),
+            '5y' => Carbon::now()->subYears(5)->startOfDay(),
+            default => Carbon::now()->subMonths(6)->startOfDay(),
+        };
+
+        return [$start, $end, $timeframe ?: '6m'];
     }
 
     public function download(Request $request)

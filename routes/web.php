@@ -74,6 +74,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 Route::middleware(['auth', 'role:admin,cajero'])->group(function () {
     Route::get('vehicles/search', [\App\Http\Controllers\VehicleController::class, 'search'])->name('vehicles.search');
     Route::get('vehicle-registry', [VehicleRegistryController::class, 'index'])->name('vehicle-registry.index');
+    Route::get('vehicle-registry/{vehicle}', [VehicleRegistryController::class, 'show'])->name('vehicle-registry.show');
     Route::get('customers/lookup', [CustomerController::class, 'lookup'])->name('customers.lookup');
     Route::get('tickets/canceled', [TicketController::class, 'canceled'])->name('tickets.canceled');
     Route::get('tickets/pending', [TicketController::class, 'pending'])->name('tickets.pending');

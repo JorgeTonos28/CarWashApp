@@ -16,11 +16,6 @@ class Customer extends Model
         'phone',
     ];
 
-    public function vehicles()
-    {
-        return $this->hasMany(Vehicle::class);
-    }
-
     public function tickets()
     {
         return $this->hasMany(Ticket::class);

@@ -13,8 +13,9 @@
                         <th class="border px-4 py-2">Placa</th>
                         <th class="border px-4 py-2">Marca</th>
                         <th class="border px-4 py-2">Modelo</th>
-                        <th class="border px-4 py-2">Cliente Dueño</th>
+                        <th class="border px-4 py-2">Visitas</th>
                         <th class="border px-4 py-2">Última visita</th>
+                        <th class="border px-4 py-2">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -24,15 +25,18 @@
                             <td class="px-4 py-2">{{ $vehicle->brand }}</td>
                             <td class="px-4 py-2">{{ $vehicle->model }}</td>
                             <td class="px-4 py-2">
-                                {{ $vehicle->customer?->name ?? $vehicle->customer_name ?? '-' }}
+                                {{ $vehicle->visits_count ?? 0 }}
                             </td>
                             <td class="px-4 py-2">
                                 {{ $vehicle->last_visit ? $vehicle->last_visit->format('d/m/Y h:i A') : '-' }}
                             </td>
+                            <td class="px-4 py-2">
+                                <a href="{{ route('vehicle-registry.show', $vehicle) }}" class="text-blue-600 hover:underline">Ver detalle</a>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-4 text-center text-sm text-gray-500">No hay vehículos registrados.</td>
+                            <td colspan="6" class="px-4 py-4 text-center text-sm text-gray-500">No hay vehículos registrados.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
@@ -43,14 +45,34 @@ class CustomerController extends Controller
             ->with('success', 'Cliente creado correctamente.');
     }
 
-    public function show(Customer $customer)
+    public function show(Request $request, Customer $customer)
     {
+        [$start, $end, $timeframe] = $this->resolveTimeframe($request->input('timeframe', '6m'));
+
         $customer->load(['tickets' => function ($query) {
             $query->latest();
         }]);
 
+        $ticketsInRange = $customer->tickets()
+            ->whereBetween('created_at', [$start, $end])
+            ->selectRaw('DATE(created_at) as visit_date, COUNT(*) as total')
+            ->groupBy('visit_date')
+            ->pluck('total', 'visit_date');
+
+        $period = CarbonPeriod::create($start, '1 day', $end);
+        $labels = [];
+        $data = [];
+        foreach ($period as $date) {
+            $label = $date->format('Y-m-d');
+            $labels[] = $label;
+            $data[] = (int) ($ticketsInRange[$label] ?? 0);
+        }
+
         return view('customers.show', [
             'customer' => $customer,
+            'chartLabels' => $labels,
+            'chartData' => $data,
+            'timeframe' => $timeframe,
         ]);
     }
 
@@ -104,5 +126,20 @@ class CustomerController extends Controller
                 'email' => $customer->email,
             ],
         ]);
+    }
+
+    private function resolveTimeframe(string $timeframe): array
+    {
+        $end = Carbon::now()->endOfDay();
+        $start = match ($timeframe) {
+            '1m' => Carbon::now()->subMonth()->startOfDay(),
+            '3m' => Carbon::now()->subMonths(3)->startOfDay(),
+            '1y' => Carbon::now()->subYear()->startOfDay(),
+            '2y' => Carbon::now()->subYears(2)->startOfDay(),
+            '5y' => Carbon::now()->subYears(5)->startOfDay(),
+            default => Carbon::now()->subMonths(6)->startOfDay(),
+        };
+
+        return [$start, $end, $timeframe ?: '6m'];
     }
 }

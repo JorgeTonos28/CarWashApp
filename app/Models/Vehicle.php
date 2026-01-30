@@ -11,7 +11,6 @@ class Vehicle extends Model
 
     protected $fillable = [
         'customer_name',
-        'customer_id',
         'vehicle_type_id',
         'plate',
         'brand',
@@ -23,11 +22,6 @@ class Vehicle extends Model
     public function vehicleType()
     {
         return $this->belongsTo(VehicleType::class);
-    }
-
-    public function customer()
-    {
-        return $this->belongsTo(Customer::class);
     }
 
     public function tickets()
