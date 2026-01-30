@@ -202,7 +202,7 @@
 
                     @php
                         $vehicle = $wash->vehicle;
-                        $vehicleLabel = trim(($vehicle->plate ?? '---').' '.($vehicle->model ?? '').' '.($vehicle->color ?? ''));
+                        $vehicleLabel = trim(($vehicle?->plate ?? '---').' '.($vehicle?->model ?? '').' '.($vehicle?->color ?? ''));
                     @endphp
                     <div class="plate">VEHÍCULO: {{ $vehicleLabel }}</div>
 
