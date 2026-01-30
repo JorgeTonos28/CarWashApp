@@ -14,14 +14,21 @@ class CustomerController extends Controller
         $this->middleware(['auth', 'role:admin,cajero']);
     }
 
-    public function index()
+    public function index(Request $request)
     {
+        $search = trim((string) $request->input('search'));
+
         $customers = Customer::withCount('tickets')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('cedula', 'like', "%{$search}%");
+            })
             ->orderBy('name')
             ->get();
 
         return view('customers.index', [
             'customers' => $customers,
+            'search' => $search,
         ]);
     }
 

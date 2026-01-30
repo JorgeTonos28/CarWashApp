@@ -15,9 +15,14 @@ class VehicleRegistryController extends Controller
         $this->middleware(['auth', 'role:admin,cajero']);
     }
 
-    public function index()
+    public function index(Request $request)
     {
+        $search = trim((string) $request->input('search'));
+
         $vehicles = Vehicle::with(['vehicleType', 'ticketWashes.ticket'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('plate', 'like', "%{$search}%");
+            })
             ->orderBy('plate')
             ->get()
             ->map(function (Vehicle $vehicle) {
@@ -37,6 +42,7 @@ class VehicleRegistryController extends Controller
 
         return view('vehicle-registry.index', [
             'vehicles' => $vehicles,
+            'search' => $search,
         ]);
     }
 

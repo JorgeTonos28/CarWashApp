@@ -6,7 +6,11 @@
     </x-slot>
 
     <div class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
-        <div class="flex justify-end">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <form method="GET" class="flex items-center gap-2">
+                <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Buscar por nombre o cédula" class="form-input w-64">
+                <button type="submit" class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">Buscar</button>
+            </form>
             <a href="{{ route('customers.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Nuevo Cliente</a>
         </div>
 

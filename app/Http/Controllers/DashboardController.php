@@ -186,6 +186,17 @@ class DashboardController extends Controller
 
         [$vehicleLabels, $vehicleData] = $this->buildVehicleChart($start, $end);
 
+        $washStatuses = [TicketWash::STATUS_PENDING, TicketWash::STATUS_READY];
+        $ticketWashes = TicketWash::with(['vehicle', 'ticket.customer'])
+            ->whereIn('status', $washStatuses)
+            ->whereHas('ticket', function ($q) use ($start, $end) {
+                $q->where('canceled', false)
+                    ->whereDate('created_at', '>=', $start)
+                    ->whereDate('created_at', '<=', $end);
+            })
+            ->orderBy('created_at')
+            ->get();
+
         $movements = [];
         foreach ($tickets as $t) {
             $movements[] = [
@@ -268,7 +279,8 @@ class DashboardController extends Controller
                 'washerDebts',
                 'pettyCashAmount',
                 'vehicleLabels',
-                'vehicleData'
+                'vehicleData',
+                'ticketWashes'
             ));
         }
 
@@ -299,6 +311,7 @@ class DashboardController extends Controller
             'lowStockProducts' => $lowStockProducts,
             'vehicleChartLabels' => $vehicleLabels,
             'vehicleChartData' => $vehicleData,
+            'ticketWashes' => $ticketWashes,
         ]);
     }
 

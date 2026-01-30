@@ -5,7 +5,11 @@
         </h2>
     </x-slot>
 
-    <div class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
+        <form method="GET" class="flex items-center gap-2">
+            <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Buscar por placa" class="form-input w-64">
+            <button type="submit" class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">Buscar</button>
+        </form>
         <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
             <table class="min-w-full table-auto border">
                 <thead class="bg-gray-200">

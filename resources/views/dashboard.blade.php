@@ -58,19 +58,20 @@
                 'pendingTickets' => $pendingTickets,
                 'vehicleLabels' => $vehicleChartLabels,
                 'vehicleData' => $vehicleChartData,
+                'ticketWashes' => $ticketWashes,
             ])
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        window.initDashboardVehicleChart = () => {
-            const canvas = document.getElementById('dashboardVehiclesChart');
+        window.initDashboardVehicleChart = (labels = null, values = null) => {
+            const canvas = document.getElementById('dashboardChart');
             if (!canvas || !window.Chart) {
                 return;
             }
-            const labels = JSON.parse(canvas.dataset.labels || '[]');
-            const values = JSON.parse(canvas.dataset.values || '[]');
+            const resolvedLabels = labels ?? JSON.parse(canvas.dataset.labels || '[]');
+            const resolvedValues = values ?? JSON.parse(canvas.dataset.values || '[]');
 
             if (canvas._chartInstance) {
                 canvas._chartInstance.destroy();
@@ -79,10 +80,10 @@
             canvas._chartInstance = new Chart(canvas, {
                 type: 'line',
                 data: {
-                    labels,
+                    labels: resolvedLabels,
                     datasets: [{
                         label: 'Vehículos',
-                        data: values,
+                        data: resolvedValues,
                         borderColor: '#0f766e',
                         backgroundColor: 'rgba(15, 118, 110, 0.1)',
                         fill: true,
@@ -100,7 +101,7 @@
             });
         };
         document.addEventListener('DOMContentLoaded', () => {
-            window.initDashboardVehicleChart?.();
+            window.initDashboardVehicleChart?.(@json($vehicleChartLabels ?? []), @json($vehicleChartData ?? []));
         });
     </script>
 </x-app-layout>

@@ -2350,24 +2350,27 @@ class TicketController extends Controller
 
     private function resolveCustomer(Request $request): ?Customer
     {
-        if (!$request->filled('customer_cedula')) {
+        $cedula = trim((string) $request->customer_cedula);
+        if ($cedula === '') {
             return null;
         }
 
-        $customer = Customer::where('cedula', $request->customer_cedula)->first();
-
-        if ($customer) {
-            if ($request->filled('customer_email') && $request->customer_email !== $customer->email) {
-                $customer->update(['email' => $request->customer_email]);
-            }
-            return $customer;
+        $customer = Customer::where('cedula', $cedula)->first();
+        if (!$customer) {
+            $customer = Customer::firstOrCreate(
+                ['cedula' => $cedula],
+                [
+                    'name' => $request->customer_name,
+                    'email' => $request->customer_email,
+                    'phone' => $request->customer_phone,
+                ]
+            );
         }
 
-        return Customer::create([
-            'name' => $request->customer_name,
-            'cedula' => $request->customer_cedula,
-            'email' => $request->customer_email,
-            'phone' => $request->customer_phone,
-        ]);
+        if ($request->filled('customer_email') && $request->customer_email !== $customer->email) {
+            $customer->update(['email' => $request->customer_email]);
+        }
+
+        return $customer;
     }
 }
