@@ -189,6 +189,7 @@ class DashboardController extends Controller
         $washStatuses = [TicketWash::STATUS_PENDING, TicketWash::STATUS_READY];
         $ticketWashes = TicketWash::with(['vehicle', 'ticket.customer'])
             ->whereIn('status', $washStatuses)
+            ->whereNotNull('vehicle_id')
             ->whereHas('ticket', function ($q) use ($start, $end) {
                 $q->where('canceled', false)
                     ->whereDate('created_at', '>=', $start)

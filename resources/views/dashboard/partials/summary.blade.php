@@ -79,6 +79,7 @@
             <table class="min-w-full table-auto border text-sm">
                 <thead class="bg-gray-200">
                     <tr>
+                        <th class="border px-3 py-2">Ticket</th>
                         <th class="border px-3 py-2">Placa / Modelo</th>
                         <th class="border px-3 py-2">Cliente</th>
                         <th class="border px-3 py-2">Estado</th>
@@ -88,6 +89,7 @@
                 <tbody>
                     @forelse($ticketWashes ?? [] as $wash)
                         <tr class="border-t">
+                            <td class="px-3 py-2">#{{ $wash->ticket_id }}</td>
                             <td class="px-3 py-2">
                                 {{ $wash->vehicle?->plate ?? 'N/D' }} - {{ $wash->vehicle?->model ?? 'N/D' }}
                             </td>
@@ -116,7 +118,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-3 py-3 text-center text-sm text-gray-500">
+                            <td colspan="5" class="px-3 py-3 text-center text-sm text-gray-500">
                                 No hay vehículos en proceso para este rango.
                             </td>
                         </tr>
@@ -148,11 +150,11 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h3 class="text-lg font-semibold">Vehículos atendidos</h3>
         </div>
+        <script type="application/json" id="dashboard-chart-labels">@json($vehicleLabels ?? [])</script>
+        <script type="application/json" id="dashboard-chart-data">@json($vehicleData ?? [])</script>
         <canvas
             id="dashboardChart"
             height="120"
-            data-labels='@json($vehicleLabels ?? [])'
-            data-values='@json($vehicleData ?? [])'
         ></canvas>
     </div>
     <div>

@@ -28,7 +28,11 @@ class TicketWashController extends Controller
 
         $customer = $ticketWash->ticket?->customer;
         if ($customer && $customer->email && filter_var($customer->email, FILTER_VALIDATE_EMAIL)) {
-            Mail::to($customer->email)->queue(new VehicleReadyMail($ticketWash));
+            try {
+                Mail::to($customer->email)->queue(new VehicleReadyMail($ticketWash));
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
         }
 
         return back()->with('success', 'Vehículo marcado como listo.');

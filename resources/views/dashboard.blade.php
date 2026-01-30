@@ -70,8 +70,10 @@
             if (!canvas || !window.Chart) {
                 return;
             }
-            const resolvedLabels = labels ?? JSON.parse(canvas.dataset.labels || '[]');
-            const resolvedValues = values ?? JSON.parse(canvas.dataset.values || '[]');
+            const labelsNode = document.getElementById('dashboard-chart-labels');
+            const dataNode = document.getElementById('dashboard-chart-data');
+            const resolvedLabels = labels ?? (labelsNode ? JSON.parse(labelsNode.textContent || '[]') : []);
+            const resolvedValues = values ?? (dataNode ? JSON.parse(dataNode.textContent || '[]') : []);
 
             if (canvas._chartInstance) {
                 canvas._chartInstance.destroy();
