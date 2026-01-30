@@ -48,6 +48,76 @@
         </tbody>
     </table>
 </div>
+
+@if (!empty($showOperationalList))
+    <div class="mt-6 bg-white shadow-sm sm:rounded-lg overflow-hidden">
+        <div class="p-4 border-b">
+            <h3 class="text-lg font-semibold">En Proceso</h3>
+            <p class="text-sm text-gray-600">Detalle por vehículo y estado actual.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full table-auto border">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="border px-4 py-2">Ticket</th>
+                        <th class="border px-4 py-2">Cliente</th>
+                        <th class="border px-4 py-2">Placa</th>
+                        <th class="border px-4 py-2">Modelo</th>
+                        <th class="border px-4 py-2">Estado</th>
+                        <th class="border px-4 py-2">Listo Desde</th>
+                        <th class="border px-4 py-2">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($ticketWashes ?? [] as $wash)
+                        @php
+                            $statusLabel = match($wash->status) {
+                                'ready' => ['Listo', 'bg-green-100 text-green-800'],
+                                'delivered' => ['Entregado', 'bg-blue-100 text-blue-800'],
+                                default => ['Pendiente', 'bg-yellow-100 text-yellow-800'],
+                            };
+                        @endphp
+                        <tr class="border-t">
+                            <td class="px-4 py-2">#{{ $wash->ticket_id }}</td>
+                            <td class="px-4 py-2">
+                                {{ $wash->ticket?->customer?->name ?? $wash->ticket?->customer_name ?? 'N/D' }}
+                            </td>
+                            <td class="px-4 py-2">{{ $wash->vehicle?->plate ?? 'N/D' }}</td>
+                            <td class="px-4 py-2">{{ $wash->vehicle?->model ?? 'N/D' }}</td>
+                            <td class="px-4 py-2">
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-semibold {{ $statusLabel[1] }}">
+                                    {{ $statusLabel[0] }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-2">
+                                {{ $wash->ready_at ? $wash->ready_at->format('d/m/Y h:i A') : '-' }}
+                            </td>
+                            <td class="px-4 py-2">
+                                @if ($wash->status === 'pending')
+                                    <form method="POST" action="{{ route('ticket-washes.ready', $wash) }}">
+                                        @csrf
+                                        <button type="submit" class="px-3 py-1 text-xs font-semibold text-green-700 border border-green-600 rounded hover:bg-green-50">
+                                            ✅ Notificar listo
+                                        </button>
+                                    </form>
+                                @else
+                                    <span class="text-xs text-gray-500">—</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="px-4 py-4 text-center text-sm text-gray-500">
+                                No hay vehículos en proceso en este rango.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+@endif
+
     @foreach ($tickets as $ticket)
         <x-modal name="cancel-{{ $ticket->id }}" focusable>
         <form method="POST" action="{{ route('tickets.cancel', $ticket) }}" class="p-6 space-y-4">

@@ -69,6 +69,28 @@
                     </a>
                 </div>
             </div>
+            <div x-data="{ open: {{ request()->routeIs('customers.*','vehicle-registry.*') ? 'true' : 'false' }} }">
+                <button type="button" @click="open=!open" class="w-full text-left px-3 py-2 font-semibold rounded hover:bg-gray-100 {{ request()->routeIs('customers.*','vehicle-registry.*') ? 'bg-gray-200' : '' }}">
+                    <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 6.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0zM3 19.5a6 6 0 0 1 18 0" />
+                    </svg>
+                    Clientes y Vehículos
+                </button>
+                <div x-show="open" x-cloak class="pl-6 space-y-1">
+                    <a href="{{ route('customers.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('customers.*') ? 'border-b-2 border-gray-500' : '' }}">
+                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372c1.3 0 2.53-.264 3.65-.74M4.5 19.128a9.38 9.38 0 0 1-2.625.372c-1.3 0-2.53-.264-3.65-.74M12 6.75a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zm7.5 0a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0z" />
+                        </svg>
+                        Clientes
+                    </a>
+                    <a href="{{ route('vehicle-registry.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('vehicle-registry.*') ? 'border-b-2 border-gray-500' : '' }}">
+                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-2.25-3.75h-10.5L4.5 8.25m15 0v9.375a.375.375 0 0 1-.375.375h-1.5a.375.375 0 0 1-.375-.375V15H7.5v2.25a.375.375 0 0 1-.375.375h-1.5a.375.375 0 0 1-.375-.375V8.25m15 0H4.5" />
+                        </svg>
+                        Parque Vehicular
+                    </a>
+                </div>
+            </div>
             @if(auth()->user()->role === 'admin')
             <div x-data="{ open: {{ request()->routeIs('discounts.*','users.*','bank-accounts.*','appearance.*','settings.*') ? 'true' : 'false' }} }">
                 <button type="button" @click="open=!open" class="w-full text-left px-3 py-2 font-semibold rounded hover:bg-gray-100 {{ request()->routeIs('discounts.*','users.*','bank-accounts.*','appearance.*','settings.*') ? 'bg-gray-200' : '' }}">
