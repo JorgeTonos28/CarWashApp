@@ -187,7 +187,7 @@ class DashboardController extends Controller
         [$vehicleLabels, $vehicleData] = $this->buildVehicleChart($start, $end);
 
         $washStatuses = [TicketWash::STATUS_PENDING, TicketWash::STATUS_READY];
-        $ticketWashes = TicketWash::with(['vehicle', 'ticket.customer'])
+        $ticketWashes = TicketWash::with(['vehicle', 'ticket.customer', 'washer'])
             ->whereIn('status', $washStatuses)
             ->whereNotNull('vehicle_id')
             ->whereHas('ticket', function ($q) use ($start, $end) {

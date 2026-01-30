@@ -1,9 +1,9 @@
 @component('mail::message')
 # ¡Tu vehículo está listo!
 
-Hola {{ $customer?->name ?? 'Cliente' }},
+{{ $replaceTokens($settings?->vehicle_ready_greeting ?? 'Hola {cliente},') }}
 
-Tu vehículo **{{ $vehicle?->plate ?? 'Sin placa' }} - {{ $vehicle?->model ?? 'Modelo' }}** ya está listo para retirar.
+{{ $replaceTokens($settings?->vehicle_ready_body ?? 'Tu vehículo {placa} - {modelo} ya está listo para retirar.') }}
 
 @component('mail::panel')
 - **Placa:** {{ $vehicle?->plate ?? 'N/D' }}
@@ -12,7 +12,7 @@ Tu vehículo **{{ $vehicle?->plate ?? 'Sin placa' }} - {{ $vehicle?->model ?? 'M
 - **Ticket:** #{{ $ticket?->id ?? 'N/D' }}
 @endcomponent
 
-Gracias por confiar en nosotros.
+{{ $replaceTokens($settings?->vehicle_ready_footer ?? 'Gracias por confiar en nosotros.') }}
 
 {{ config('app.name') }}
 @endcomponent

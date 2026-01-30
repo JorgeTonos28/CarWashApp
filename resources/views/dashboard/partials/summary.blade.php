@@ -75,13 +75,14 @@
         <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
             <h3 class="text-lg font-semibold">Vehículos en Proceso</h3>
         </div>
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto max-h-80 overflow-y-auto">
             <table class="min-w-full table-auto border text-sm">
                 <thead class="bg-gray-200">
                     <tr>
                         <th class="border px-3 py-2">Ticket</th>
                         <th class="border px-3 py-2">Placa / Modelo</th>
                         <th class="border px-3 py-2">Cliente</th>
+                        <th class="border px-3 py-2">Lavador</th>
                         <th class="border px-3 py-2">Estado</th>
                         <th class="border px-3 py-2">Acción</th>
                     </tr>
@@ -95,6 +96,9 @@
                             </td>
                             <td class="px-3 py-2">
                                 {{ $wash->ticket?->customer?->name ?? $wash->ticket?->customer_name ?? 'N/D' }}
+                            </td>
+                            <td class="px-3 py-2">
+                                {{ $wash->washer?->name ?? 'Sin asignar' }}
                             </td>
                             <td class="px-3 py-2">
                                 @if($wash->status === 'ready')
@@ -118,7 +122,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-3 py-3 text-center text-sm text-gray-500">
+                            <td colspan="6" class="px-3 py-3 text-center text-sm text-gray-500">
                                 No hay vehículos en proceso para este rango.
                             </td>
                         </tr>

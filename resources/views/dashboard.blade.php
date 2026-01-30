@@ -67,7 +67,11 @@
     <script>
         window.initDashboardVehicleChart = (labels = null, values = null) => {
             const canvas = document.getElementById('dashboardChart');
-            if (!canvas || !window.Chart) {
+            if (!canvas) {
+                return;
+            }
+            if (!window.Chart) {
+                setTimeout(() => window.initDashboardVehicleChart?.(labels, values), 200);
                 return;
             }
             const labelsNode = document.getElementById('dashboard-chart-labels');

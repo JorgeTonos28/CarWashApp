@@ -7,15 +7,14 @@
 
     <div class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <form method="GET" class="flex items-center gap-2">
-                <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Buscar por nombre o cédula" class="form-input w-64">
-                <button type="submit" class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">Buscar</button>
-            </form>
+            <div class="flex items-center gap-2">
+                <input type="text" id="customer-search" placeholder="Buscar por nombre o cédula" class="form-input w-64">
+            </div>
             <a href="{{ route('customers.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Nuevo Cliente</a>
         </div>
 
         <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
-            <table class="min-w-full table-auto border">
+            <table class="min-w-full table-auto border" id="customers-table">
                 <thead class="bg-gray-200">
                     <tr>
                         <th class="border px-4 py-2">Nombre</th>
@@ -57,3 +56,17 @@
         </div>
     </div>
 </x-app-layout>
+<script>
+    const customerSearch = document.getElementById('customer-search');
+    const customerTable = document.getElementById('customers-table');
+    if (customerSearch && customerTable) {
+        const rows = Array.from(customerTable.querySelectorAll('tbody tr'));
+        customerSearch.addEventListener('input', (event) => {
+            const term = event.target.value.toLowerCase();
+            rows.forEach((row) => {
+                const text = row.textContent.toLowerCase();
+                row.classList.toggle('hidden', term && !text.includes(term));
+            });
+        });
+    }
+</script>

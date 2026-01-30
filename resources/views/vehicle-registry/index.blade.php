@@ -6,12 +6,11 @@
     </x-slot>
 
     <div class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
-        <form method="GET" class="flex items-center gap-2">
-            <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Buscar por placa" class="form-input w-64">
-            <button type="submit" class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">Buscar</button>
-        </form>
+        <div class="flex items-center gap-2">
+            <input type="text" id="vehicle-search" placeholder="Buscar por placa" class="form-input w-64">
+        </div>
         <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
-            <table class="min-w-full table-auto border">
+            <table class="min-w-full table-auto border" id="vehicles-table">
                 <thead class="bg-gray-200">
                     <tr>
                         <th class="border px-4 py-2">Placa</th>
@@ -48,3 +47,17 @@
         </div>
     </div>
 </x-app-layout>
+<script>
+    const vehicleSearch = document.getElementById('vehicle-search');
+    const vehiclesTable = document.getElementById('vehicles-table');
+    if (vehicleSearch && vehiclesTable) {
+        const rows = Array.from(vehiclesTable.querySelectorAll('tbody tr'));
+        vehicleSearch.addEventListener('input', (event) => {
+            const term = event.target.value.toLowerCase();
+            rows.forEach((row) => {
+                const text = row.textContent.toLowerCase();
+                row.classList.toggle('hidden', term && !text.includes(term));
+            });
+        });
+    }
+</script>
