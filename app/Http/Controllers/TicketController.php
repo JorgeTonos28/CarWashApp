@@ -192,8 +192,12 @@ class TicketController extends Controller
     public function create()
     {
         $services = Service::where('active', true)
-            ->whereHas('prices')
-            ->with('prices')
+            ->whereHas('prices', function ($q) {
+                $q->whereNotNull('vehicle_type_id');
+            })
+            ->with(['prices' => function ($q) {
+                $q->whereNotNull('vehicle_type_id');
+            }])
             ->get();
         $servicePrices = [];
         foreach ($services as $service) {
@@ -692,8 +696,12 @@ class TicketController extends Controller
         $ticket->loadMissing('details.genericServiceVariant.genericService', 'payments');
 
         $services = Service::where('active', true)
-            ->whereHas('prices')
-            ->with('prices')
+            ->whereHas('prices', function ($q) {
+                $q->whereNotNull('vehicle_type_id');
+            })
+            ->with(['prices' => function ($q) {
+                $q->whereNotNull('vehicle_type_id');
+            }])
             ->get();
         $servicePrices = [];
         foreach ($services as $service) {
