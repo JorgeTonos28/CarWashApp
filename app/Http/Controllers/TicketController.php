@@ -20,6 +20,7 @@ use App\Models\CommissionSetting;
 use App\Models\GenericService;
 use App\Models\GenericServiceVariant;
 use App\Models\TicketPayment;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -84,6 +85,7 @@ class TicketController extends Controller
                 'bankAccounts' => $bankAccounts,
                 'washers' => $washers,
                 'invoicedTotal' => $invoicedTotal,
+                'showOperationalList' => false,
             ]);
         }
 
@@ -93,6 +95,7 @@ class TicketController extends Controller
             'bankAccounts' => $bankAccounts,
             'washers' => $washers,
             'invoicedTotal' => $invoicedTotal,
+            'showOperationalList' => false,
         ]);
     }
 
@@ -170,12 +173,29 @@ class TicketController extends Controller
         }
         $invoicedTotal = $invQuery->sum('total_amount');
 
+        $ticketWashes = TicketWash::with(['ticket.customer', 'vehicle'])
+            ->whereHas('ticket', function ($query) use ($filters) {
+                $query->where('canceled', false)
+                    ->where('pending', true);
+
+                if ($filters['start']) {
+                    $query->whereDate('created_at', '>=', $filters['start']);
+                }
+                if ($filters['end']) {
+                    $query->whereDate('created_at', '<=', $filters['end']);
+                }
+            })
+            ->orderByDesc('created_at')
+            ->get();
+
         if ($request->ajax()) {
             return view('tickets.partials.table', [
                 'tickets' => $tickets,
                 'bankAccounts' => $bankAccounts,
                 'washers' => $washers,
                 'invoicedTotal' => $invoicedTotal,
+                'ticketWashes' => $ticketWashes,
+                'showOperationalList' => true,
             ]);
         }
 
@@ -185,6 +205,8 @@ class TicketController extends Controller
             'bankAccounts' => $bankAccounts,
             'washers' => $washers,
             'invoicedTotal' => $invoicedTotal,
+            'ticketWashes' => $ticketWashes,
+            'showOperationalList' => true,
         ]);
     }
 
@@ -289,6 +311,8 @@ class TicketController extends Controller
 
         $rules = [
             'customer_name' => ['required', 'regex:/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+$/', 'max:255'],
+            'customer_cedula' => ['nullable', 'string', 'max:50'],
+            'customer_email' => ['nullable', 'email', 'max:255'],
             'vehicle_type_id' => [$hasWash ? 'required' : 'nullable', 'exists:vehicle_types,id'],
             'customer_phone' => ['nullable','regex:/^[0-9+()\s-]+$/','max:20'],
             'plate' => [$hasWash ? 'required' : 'nullable', 'alpha_num', 'max:20'],
@@ -337,6 +361,7 @@ class TicketController extends Controller
             'color.regex' => 'El color solo puede contener letras.',
             'customer_name.regex' => 'El nombre solo puede contener letras.',
             'customer_phone.regex' => 'El teléfono solo puede contener números y caracteres + - ()',
+            'customer_email.email' => 'El correo electrónico no es válido.',
             'year.between' => 'El año debe estar entre 1890 y '.date('Y').'.',
             'washer_id.exists' => 'El lavador seleccionado no es válido.',
             'service_ids.*.exists' => 'Alguno de los servicios seleccionados es inválido.',
@@ -359,6 +384,7 @@ class TicketController extends Controller
         DB::beginTransaction();
 
         try {
+            $customer = $this->resolveCustomer($request);
             $ticketDate = Carbon::parse($request->ticket_date)->setTimeFrom(now());
             $vehicleType = $request->vehicle_type_id ? VehicleType::findOrFail($request->vehicle_type_id) : null;
             $total = 0;
@@ -608,8 +634,14 @@ class TicketController extends Controller
                         'color' => $request->color,
                         'year' => $request->year,
                     ]);
-                } elseif (!$vehicle->year && $request->filled('year')) {
-                    $vehicle->update(['year' => $request->year]);
+                } else {
+                    $updates = [];
+                    if (!$vehicle->year && $request->filled('year')) {
+                        $updates['year'] = $request->year;
+                    }
+                    if ($updates) {
+                        $vehicle->update($updates);
+                    }
                 }
             }
 
@@ -620,7 +652,9 @@ class TicketController extends Controller
                 'washer_id' => $request->washer_id,
                 'vehicle_type_id' => $request->vehicle_type_id,
                 'vehicle_id' => optional($vehicle)->id,
+                'customer_id' => optional($customer)->id,
                 'customer_name' => $request->customer_name,
+                'customer_cedula' => $request->customer_cedula,
                 'customer_phone' => $request->customer_phone,
                 'total_amount' => $total,
                 'paid_amount' => $pending ? 0 : $request->paid_amount,
@@ -642,6 +676,7 @@ class TicketController extends Controller
                 'commission_amount' => $commissionAmount,
                 'washer_paid' => false,
                 'tip' => 0,
+                'status' => TicketWash::STATUS_PENDING,
             ]);
 
             foreach ($details as $detail) {
@@ -1122,6 +1157,7 @@ class TicketController extends Controller
                         'commission_amount' => $commissionAmount,
                         'washer_paid' => false,
                         'tip' => 0,
+                        'status' => TicketWash::STATUS_PENDING,
                     ]);
                 } else {
                     $ticketWash->update([
@@ -1836,6 +1872,7 @@ class TicketController extends Controller
                     'commission_amount' => $washCommission,
                     'washer_paid'=>false,
                     'tip'=>$washData['tip'],
+                    'status' => TicketWash::STATUS_PENDING,
                 ]);
                 foreach($info['details'] as $d){
                     $d['ticket_id']=$ticket->id;
@@ -1892,6 +1929,8 @@ class TicketController extends Controller
 
         $rules = [
             'customer_name' => ['required', 'regex:/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+$/', 'max:255'],
+            'customer_cedula' => ['nullable', 'string', 'max:50'],
+            'customer_email' => ['nullable', 'email', 'max:255'],
             'customer_phone' => ['nullable','regex:/^[0-9+()\s-]+$/','max:20'],
             'ticket_date' => 'required|date|before_or_equal:today',
             'washes' => ['required','array','min:1'],
@@ -1932,6 +1971,7 @@ class TicketController extends Controller
             'customer_name.max' => 'El nombre del cliente es demasiado largo.',
             'customer_name.regex' => 'El nombre solo puede contener letras.',
             'customer_phone.regex' => 'El teléfono solo puede contener números y caracteres + - ()',
+            'customer_email.email' => 'El correo electrónico no es válido.',
             'ticket_date.required' => 'La fecha del ticket es obligatoria.',
             'ticket_date.date' => 'La fecha del ticket no es válida.',
             'ticket_date.before_or_equal' => 'La fecha del ticket no puede ser futura.',
@@ -1968,6 +2008,7 @@ class TicketController extends Controller
         DB::beginTransaction();
 
         try {
+            $customer = $this->resolveCustomer($request);
             $ticketDate = Carbon::parse($request->ticket_date)->setTimeFrom(now());
             $commissionAmount = CommissionSetting::first()?->default_amount ?? 100;
             $total = 0; $discountTotal = 0; $details = []; $productMovements = [];
@@ -2193,7 +2234,9 @@ class TicketController extends Controller
 
             $ticket = Ticket::create([
                 'user_id' => auth()->id(),
+                'customer_id' => optional($customer)->id,
                 'customer_name' => $request->customer_name,
+                'customer_cedula' => $request->customer_cedula,
                 'customer_phone' => $request->customer_phone,
                 'total_amount' => $total,
                 'paid_amount' => $pending ? 0 : $request->paid_amount,
@@ -2220,8 +2263,14 @@ class TicketController extends Controller
                         'color' => $washData['color'],
                         'year' => $washData['year'] ?? null,
                     ]);
-                } elseif (!$vehicle->year && !empty($washData['year'])) {
-                    $vehicle->update(['year' => $washData['year']]);
+                } else {
+                    $updates = [];
+                    if (!$vehicle->year && !empty($washData['year'])) {
+                        $updates['year'] = $washData['year'];
+                    }
+                    if ($updates) {
+                        $vehicle->update($updates);
+                    }
                 }
 
                 $wash = TicketWash::create([
@@ -2232,6 +2281,7 @@ class TicketController extends Controller
                     'commission_amount' => $commissionAmount,
                     'washer_paid' => false,
                     'tip' => $washData['tip'],
+                    'status' => TicketWash::STATUS_PENDING,
                 ]);
 
                 foreach ($info['details'] as $d) {
@@ -2296,5 +2346,31 @@ class TicketController extends Controller
             DB::rollBack();
             return back()->with('error', 'Error generando ticket: ' . $e->getMessage());
         }
+    }
+
+    private function resolveCustomer(Request $request): ?Customer
+    {
+        $cedula = trim((string) $request->customer_cedula);
+        if ($cedula === '') {
+            return null;
+        }
+
+        $customer = Customer::where('cedula', $cedula)->first();
+        if (!$customer) {
+            $customer = Customer::firstOrCreate(
+                ['cedula' => $cedula],
+                [
+                    'name' => $request->customer_name,
+                    'email' => $request->customer_email,
+                    'phone' => $request->customer_phone,
+                ]
+            );
+        }
+
+        if ($request->filled('customer_email') && $request->customer_email !== $customer->email) {
+            $customer->update(['email' => $request->customer_email]);
+        }
+
+        return $customer;
     }
 }

@@ -28,6 +28,33 @@
                         <x-text-input id="default_low_stock" name="default_low_stock" type="number" class="w-full" :value="$settings->default_low_stock" required />
                     </div>
 
+                    <hr class="my-6">
+
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">Correo de vehículo listo</h3>
+                            <p class="text-sm text-gray-500">
+                                Personaliza el asunto y el contenido del correo. Variables disponibles: {cliente}, {placa}, {modelo}, {marca}, {ticket}.
+                            </p>
+                        </div>
+                        <div>
+                            <x-input-label for="vehicle_ready_subject" value="Asunto" />
+                            <x-text-input id="vehicle_ready_subject" name="vehicle_ready_subject" type="text" class="w-full" :value="$settings->vehicle_ready_subject" />
+                        </div>
+                        <div>
+                            <x-input-label for="vehicle_ready_greeting" value="Saludo" />
+                            <x-text-input id="vehicle_ready_greeting" name="vehicle_ready_greeting" type="text" class="w-full" :value="$settings->vehicle_ready_greeting" />
+                        </div>
+                        <div>
+                            <x-input-label for="vehicle_ready_body" value="Mensaje principal" />
+                            <textarea id="vehicle_ready_body" name="vehicle_ready_body" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" rows="4">{{ $settings->vehicle_ready_body }}</textarea>
+                        </div>
+                        <div>
+                            <x-input-label for="vehicle_ready_footer" value="Pie de mensaje" />
+                            <x-text-input id="vehicle_ready_footer" name="vehicle_ready_footer" type="text" class="w-full" :value="$settings->vehicle_ready_footer" />
+                        </div>
+                    </div>
+
                     <x-primary-button>Guardar Ajustes</x-primary-button>
                 </form>
             </div>

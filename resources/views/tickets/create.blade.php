@@ -10,14 +10,22 @@
         <form x-ref="form" action="{{ route('tickets.store') }}" method="POST" @submit.prevent="submitForm($event)" class="space-y-6 pb-32">
             @csrf
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Nombre del Cliente</label>
-                    <input type="text" name="customer_name" pattern="[A-Za-zÁÉÍÓÚáéíóúñÑ ]+" required class="form-input w-full mt-1">
+                    <input type="text" id="customer_name" name="customer_name" pattern="[A-Za-zÁÉÍÓÚáéíóúñÑ ]+" required class="form-input w-full mt-1">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Cédula (Opcional)</label>
+                    <input type="text" id="customer_cedula" name="customer_cedula" class="form-input w-full mt-1">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Teléfono</label>
-                    <input type="text" name="customer_phone" pattern="[0-9+() -]*" class="form-input w-full mt-1">
+                    <input type="text" id="customer_phone" name="customer_phone" pattern="[0-9+() -]*" class="form-input w-full mt-1">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Correo Electrónico (Opcional)</label>
+                    <input type="email" id="customer_email" name="customer_email" class="form-input w-full mt-1">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Fecha del Ticket</label>
@@ -956,6 +964,43 @@
 
         updateTotal();
         toggleBank();
+
+        const customerCedulaInput = document.getElementById('customer_cedula');
+        const customerNameInput = document.getElementById('customer_name');
+        const customerPhoneInput = document.getElementById('customer_phone');
+        const customerEmailInput = document.getElementById('customer_email');
+        let customerLookupTimeout = null;
+
+        if (customerCedulaInput) {
+            customerCedulaInput.addEventListener('input', () => {
+                clearTimeout(customerLookupTimeout);
+                customerLookupTimeout = setTimeout(() => {
+                    const cedula = customerCedulaInput.value.trim();
+                    if (!cedula) {
+                        return;
+                    }
+                    fetch(`{{ route('customers.lookup') }}?cedula=${encodeURIComponent(cedula)}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    })
+                        .then((res) => res.ok ? res.json() : null)
+                        .then((data) => {
+                            if (!data?.found) {
+                                return;
+                            }
+                            if (!customerNameInput.value) {
+                                customerNameInput.value = data.customer.name ?? '';
+                            }
+                            if (!customerPhoneInput.value) {
+                                customerPhoneInput.value = data.customer.phone ?? '';
+                            }
+                            if (!customerEmailInput.value) {
+                                customerEmailInput.value = data.customer.email ?? '';
+                            }
+                        })
+                        .catch(() => {});
+                }, 400);
+            });
+        }
 
         function ticketForm() {
             return {

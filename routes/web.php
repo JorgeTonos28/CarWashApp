@@ -12,6 +12,9 @@ use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\AppearanceController;
 use App\Http\Controllers\AppSettingController;
 use App\Http\Controllers\VehicleTypeController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\VehicleRegistryController;
+use App\Http\Controllers\TicketWashController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -70,12 +73,17 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 });
 Route::middleware(['auth', 'role:admin,cajero'])->group(function () {
     Route::get('vehicles/search', [\App\Http\Controllers\VehicleController::class, 'search'])->name('vehicles.search');
+    Route::get('vehicle-registry', [VehicleRegistryController::class, 'index'])->name('vehicle-registry.index');
+    Route::get('vehicle-registry/{vehicle}', [VehicleRegistryController::class, 'show'])->name('vehicle-registry.show');
+    Route::get('customers/lookup', [CustomerController::class, 'lookup'])->name('customers.lookup');
     Route::get('tickets/canceled', [TicketController::class, 'canceled'])->name('tickets.canceled');
     Route::get('tickets/pending', [TicketController::class, 'pending'])->name('tickets.pending');
     Route::get('tickets/print/{id}', [TicketController::class, 'print'])->name('tickets.print');
     Route::post('tickets/{ticket}/pay', [TicketController::class, 'pay'])->name('tickets.pay');
     Route::post('tickets/{ticket}/cancel', [TicketController::class, 'cancel'])->name('tickets.cancel');
+    Route::post('ticket-washes/{ticketWash}/ready', [TicketWashController::class, 'markAsReady'])->name('ticket-washes.ready');
     Route::resource('tickets', TicketController::class);
+    Route::resource('customers', CustomerController::class);
     Route::resource('petty-cash', PettyCashExpenseController::class)->except(['show', 'edit', 'update']);
 });
 require __DIR__.'/auth.php';

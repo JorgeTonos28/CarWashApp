@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div x-data="filterTable('{{ route('dashboard') }}')" class="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div x-data="filterTable('{{ route('dashboard') }}', { onUpdate: () => window.initDashboardVehicleChart?.() })" class="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
         @if(isset($lowStockProducts) && $lowStockProducts->count() > 0)
             <div class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 mb-4 flex justify-between items-center">
                 <div>
@@ -56,7 +56,58 @@
                 'pettyCashTotal' => $pettyCashTotal,
                 'accountsReceivable' => $accountsReceivable,
                 'pendingTickets' => $pendingTickets,
+                'vehicleLabels' => $vehicleChartLabels,
+                'vehicleData' => $vehicleChartData,
+                'ticketWashes' => $ticketWashes,
             ])
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        window.initDashboardVehicleChart = (labels = null, values = null) => {
+            const canvas = document.getElementById('dashboardChart');
+            if (!canvas) {
+                return;
+            }
+            if (!window.Chart) {
+                setTimeout(() => window.initDashboardVehicleChart?.(labels, values), 200);
+                return;
+            }
+            const labelsNode = document.getElementById('dashboard-chart-labels');
+            const dataNode = document.getElementById('dashboard-chart-data');
+            const resolvedLabels = labels ?? (labelsNode ? JSON.parse(labelsNode.textContent || '[]') : []);
+            const resolvedValues = values ?? (dataNode ? JSON.parse(dataNode.textContent || '[]') : []);
+
+            if (canvas._chartInstance) {
+                canvas._chartInstance.destroy();
+            }
+
+            canvas._chartInstance = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: resolvedLabels,
+                    datasets: [{
+                        label: 'Vehículos',
+                        data: resolvedValues,
+                        borderColor: '#0f766e',
+                        backgroundColor: 'rgba(15, 118, 110, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { ticks: { maxTicksLimit: 8 } },
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                }
+            });
+        };
+        document.addEventListener('DOMContentLoaded', () => {
+            window.initDashboardVehicleChart?.(@json($vehicleChartLabels ?? []), @json($vehicleChartData ?? []));
+        });
+    </script>
 </x-app-layout>

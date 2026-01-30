@@ -28,4 +28,9 @@ class Vehicle extends Model
     {
         return $this->hasMany(Ticket::class);
     }
+
+    public function ticketWashes()
+    {
+        return $this->hasMany(TicketWash::class);
+    }
 }

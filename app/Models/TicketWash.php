@@ -9,6 +9,10 @@ class TicketWash extends Model
 {
     use HasFactory;
 
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_READY = 'ready';
+    public const STATUS_DELIVERED = 'delivered';
+
     protected $fillable = [
         'ticket_id',
         'vehicle_id',
@@ -17,12 +21,15 @@ class TicketWash extends Model
         'commission_amount',
         'washer_paid',
         'tip',
+        'status',
+        'ready_at',
     ];
 
     protected $casts = [
         'washer_paid' => 'boolean',
         'tip' => 'float',
         'commission_amount' => 'float',
+        'ready_at' => 'datetime',
     ];
 
     public function ticket()

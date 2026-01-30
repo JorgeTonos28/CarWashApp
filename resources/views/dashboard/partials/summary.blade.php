@@ -71,6 +71,66 @@
             @endif
         </div>
     </div>
+    <div class="bg-white p-4 shadow sm:rounded-lg overflow-hidden">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <h3 class="text-lg font-semibold">Vehículos en Proceso</h3>
+        </div>
+        <div class="overflow-x-auto max-h-80 overflow-y-auto">
+            <table class="min-w-full table-auto border text-sm">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="border px-3 py-2">Ticket</th>
+                        <th class="border px-3 py-2">Placa / Modelo</th>
+                        <th class="border px-3 py-2">Cliente</th>
+                        <th class="border px-3 py-2">Lavador</th>
+                        <th class="border px-3 py-2">Estado</th>
+                        <th class="border px-3 py-2">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($ticketWashes ?? [] as $wash)
+                        <tr class="border-t">
+                            <td class="px-3 py-2">#{{ $wash->ticket_id }}</td>
+                            <td class="px-3 py-2">
+                                {{ $wash->vehicle?->plate ?? 'N/D' }} - {{ $wash->vehicle?->model ?? 'N/D' }}
+                            </td>
+                            <td class="px-3 py-2">
+                                {{ $wash->ticket?->customer?->name ?? $wash->ticket?->customer_name ?? 'N/D' }}
+                            </td>
+                            <td class="px-3 py-2">
+                                {{ $wash->washer?->name ?? 'Sin asignar' }}
+                            </td>
+                            <td class="px-3 py-2">
+                                @if($wash->status === 'ready')
+                                    <span class="text-green-700 font-semibold">Listo</span>
+                                @else
+                                    <span class="text-yellow-700 font-semibold">Pendiente</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-2">
+                                @if($wash->status === 'pending')
+                                    <form method="POST" action="{{ route('ticket-washes.ready', $wash) }}">
+                                        @csrf
+                                        <button type="submit" class="px-3 py-1 text-xs font-semibold text-green-700 border border-green-600 rounded hover:bg-green-50">
+                                            ✅ Marcar listo
+                                        </button>
+                                    </form>
+                                @else
+                                    <span class="text-xs text-gray-600">🔔 Esperando entrega</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="px-3 py-3 text-center text-sm text-gray-500">
+                                No hay vehículos en proceso para este rango.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
     <div class="grid md:grid-cols-2 gap-4">
         <div class="bg-white p-4 shadow sm:rounded-lg">
             <h3 class="text-lg font-semibold mb-2">Últimos gastos de caja chica</h3>
@@ -89,6 +149,17 @@
                 @endforeach
             </ul>
         </div>
+    </div>
+    <div class="bg-white p-4 shadow sm:rounded-lg space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h3 class="text-lg font-semibold">Vehículos atendidos</h3>
+        </div>
+        <script type="application/json" id="dashboard-chart-labels">@json($vehicleLabels ?? [])</script>
+        <script type="application/json" id="dashboard-chart-data">@json($vehicleData ?? [])</script>
+        <canvas
+            id="dashboardChart"
+            height="120"
+        ></canvas>
     </div>
     <div>
         <h3 class="text-lg font-semibold mb-2">Movimientos</h3>

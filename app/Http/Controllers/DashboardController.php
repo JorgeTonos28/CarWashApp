@@ -14,6 +14,8 @@ use App\Models\Washer;
 use App\Models\WasherMovement;
 use App\Models\Product;
 use App\Models\TicketPayment;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 
 class DashboardController extends Controller
 {
@@ -182,6 +184,20 @@ class DashboardController extends Controller
 
         $lastExpenses = $pettyCashExpenses->take(5);
 
+        [$vehicleLabels, $vehicleData] = $this->buildVehicleChart($start, $end);
+
+        $washStatuses = [TicketWash::STATUS_PENDING, TicketWash::STATUS_READY];
+        $ticketWashes = TicketWash::with(['vehicle', 'ticket.customer', 'washer'])
+            ->whereIn('status', $washStatuses)
+            ->whereNotNull('vehicle_id')
+            ->whereHas('ticket', function ($q) use ($start, $end) {
+                $q->where('canceled', false)
+                    ->whereDate('created_at', '>=', $start)
+                    ->whereDate('created_at', '<=', $end);
+            })
+            ->orderBy('created_at')
+            ->get();
+
         $movements = [];
         foreach ($tickets as $t) {
             $movements[] = [
@@ -262,7 +278,10 @@ class DashboardController extends Controller
                 'accountsReceivable',
                 'pendingTickets',
                 'washerDebts',
-                'pettyCashAmount'
+                'pettyCashAmount',
+                'vehicleLabels',
+                'vehicleData',
+                'ticketWashes'
             ));
         }
 
@@ -291,7 +310,85 @@ class DashboardController extends Controller
             'washerDebts' => $washerDebts,
             'pettyCashAmount' => $pettyCashAmount,
             'lowStockProducts' => $lowStockProducts,
+            'vehicleChartLabels' => $vehicleLabels,
+            'vehicleChartData' => $vehicleData,
+            'ticketWashes' => $ticketWashes,
         ]);
+    }
+
+    private function buildVehicleChart(string $start, string $end): array
+    {
+        $startDate = Carbon::parse($start)->startOfDay();
+        $endDate = Carbon::parse($end)->endOfDay();
+
+        $diffDays = $startDate->diffInDays($endDate);
+        $labels = [];
+        $data = [];
+
+        if ($diffDays === 0) {
+            $endHour = Carbon::now()->min($endDate)->hour;
+            $counts = TicketWash::whereHas('ticket', fn ($q) => $q->where('canceled', false))
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('HOUR(created_at) as visit_hour, COUNT(*) as total')
+                ->groupBy('visit_hour')
+                ->pluck('total', 'visit_hour');
+
+            for ($hour = 0; $hour <= $endHour; $hour++) {
+                $labels[] = str_pad((string) $hour, 2, '0', STR_PAD_LEFT).':00';
+                $data[] = (int) ($counts[$hour] ?? 0);
+            }
+
+            return [$labels, $data];
+        }
+
+        if ($diffDays <= 31) {
+            $counts = TicketWash::whereHas('ticket', fn ($q) => $q->where('canceled', false))
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('DATE(created_at) as visit_date, COUNT(*) as total')
+                ->groupBy('visit_date')
+                ->pluck('total', 'visit_date');
+
+            $period = CarbonPeriod::create($startDate, '1 day', $endDate);
+            foreach ($period as $date) {
+                $label = $date->format('Y-m-d');
+                $labels[] = $label;
+                $data[] = (int) ($counts[$label] ?? 0);
+            }
+
+            return [$labels, $data];
+        }
+
+        if ($diffDays <= 730) {
+            $counts = TicketWash::whereHas('ticket', fn ($q) => $q->where('canceled', false))
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as visit_month, COUNT(*) as total")
+                ->groupBy('visit_month')
+                ->pluck('total', 'visit_month');
+
+            $period = CarbonPeriod::create($startDate->copy()->startOfMonth(), '1 month', $endDate->copy()->startOfMonth());
+            foreach ($period as $date) {
+                $label = $date->format('Y-m');
+                $labels[] = $label;
+                $data[] = (int) ($counts[$label] ?? 0);
+            }
+
+            return [$labels, $data];
+        }
+
+        $counts = TicketWash::whereHas('ticket', fn ($q) => $q->where('canceled', false))
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('YEAR(created_at) as visit_year, COUNT(*) as total')
+            ->groupBy('visit_year')
+            ->pluck('total', 'visit_year');
+
+        $period = CarbonPeriod::create($startDate->copy()->startOfYear(), '1 year', $endDate->copy()->startOfYear());
+        foreach ($period as $date) {
+            $label = $date->format('Y');
+            $labels[] = $label;
+            $data[] = (int) ($counts[$label] ?? 0);
+        }
+
+        return [$labels, $data];
     }
 
     public function download(Request $request)
