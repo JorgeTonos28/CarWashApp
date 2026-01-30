@@ -310,9 +310,9 @@ class TicketController extends Controller
             $rules['payment_method'] = 'required|in:efectivo,tarjeta,transferencia,mixto';
             $rules['bank_account_id'] = 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id';
             $rules['paid_amount'] = 'required|numeric|min:0';
-            $rules['mixed_cash_amount'] = 'required_if:payment_method,mixto|numeric|min:0';
-            $rules['mixed_card_amount'] = 'required_if:payment_method,mixto|numeric|min:0';
-            $rules['mixed_transfer_amount'] = 'required_if:payment_method,mixto|numeric|min:0';
+            $rules['mixed_cash_amount'] = 'nullable|numeric|min:0';
+            $rules['mixed_card_amount'] = 'nullable|numeric|min:0';
+            $rules['mixed_transfer_amount'] = 'nullable|numeric|min:0';
         }
 
         $request->validate($rules, [
@@ -569,7 +569,7 @@ class TicketController extends Controller
             }
 
             if (!$pending) {
-                $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount);
+                $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount, $total);
                 if ($paymentErrors) {
                     DB::rollBack();
                     if ($request->expectsJson()) {
@@ -686,7 +686,7 @@ class TicketController extends Controller
             return redirect()->route('tickets.index')->with('error', 'No se puede editar un ticket con más de 6 horas de creado.');
         }
 
-        $ticket->loadMissing('details.genericServiceVariant.service', 'payments');
+        $ticket->loadMissing('details.genericServiceVariant.genericService', 'payments');
 
         $services = Service::where('active', true)->with('prices')->get();
         $servicePrices = [];
@@ -736,13 +736,17 @@ class TicketController extends Controller
 
         $ticketProducts = $ticket->details->where('type','product')->map(fn($d)=>['id'=>$d->product_id,'qty'=>$d->quantity]);
         $ticketDrinks = $ticket->details->where('type','drink')->map(fn($d)=>['id'=>$d->drink_id,'qty'=>$d->quantity]);
-        $ticketGenericServices = $ticket->details
-            ->where('type', 'generic_service')
-            ->map(fn($d) => [
-                'variant_id' => $d->generic_service_variant_id,
-                'service_id' => $d->genericServiceVariant?->generic_service_id,
-                'qty' => $d->quantity,
-            ]);
+        $ticketGenericServices = $ticket->details()
+            ->whereNotNull('generic_service_variant_id')
+            ->with('genericServiceVariant.genericService')
+            ->get()
+            ->map(function ($d) {
+                return [
+                    'service_id' => $d->genericServiceVariant->generic_service_id,
+                    'variant_id' => $d->generic_service_variant_id,
+                    'qty' => $d->quantity,
+                ];
+            });
 
         $ticketWashes = $ticket->washes->map(function($w) use ($servicePrices, $serviceDiscounts, $ticket) {
             $serviceIds = $w->details->where('type','service')->pluck('service_id');
@@ -850,9 +854,9 @@ class TicketController extends Controller
                 $rules['payment_method'] = 'required|in:efectivo,tarjeta,transferencia,mixto';
                 $rules['bank_account_id'] = 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id';
                 $rules['paid_amount'] = 'required|numeric|min:0';
-                $rules['mixed_cash_amount'] = 'required_if:payment_method,mixto|numeric|min:0';
-                $rules['mixed_card_amount'] = 'required_if:payment_method,mixto|numeric|min:0';
-                $rules['mixed_transfer_amount'] = 'required_if:payment_method,mixto|numeric|min:0';
+                $rules['mixed_cash_amount'] = 'nullable|numeric|min:0';
+                $rules['mixed_card_amount'] = 'nullable|numeric|min:0';
+                $rules['mixed_transfer_amount'] = 'nullable|numeric|min:0';
             }
 
             $request->validate($rules, [
@@ -1046,7 +1050,7 @@ class TicketController extends Controller
                 }
 
                 if (!$pending) {
-                    $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount);
+                    $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount, $total);
                     if ($paymentErrors) {
                         DB::rollBack();
                         return back()->withErrors($paymentErrors)->withInput();
@@ -1150,12 +1154,12 @@ class TicketController extends Controller
             'payment_method' => 'required|in:efectivo,tarjeta,transferencia,mixto',
             'bank_account_id' => 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id',
             'paid_amount' => 'required|numeric|min:0',
-            'mixed_cash_amount' => 'required_if:payment_method,mixto|numeric|min:0',
-            'mixed_card_amount' => 'required_if:payment_method,mixto|numeric|min:0',
-            'mixed_transfer_amount' => 'required_if:payment_method,mixto|numeric|min:0',
+            'mixed_cash_amount' => 'nullable|numeric|min:0',
+            'mixed_card_amount' => 'nullable|numeric|min:0',
+            'mixed_transfer_amount' => 'nullable|numeric|min:0',
         ]);
 
-        $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount);
+        $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount, (float) $ticket->total_amount);
         if ($paymentErrors) {
             return back()->withErrors($paymentErrors)->withInput();
         }
@@ -1262,16 +1266,16 @@ class TicketController extends Controller
             'payment_method' => 'required|in:efectivo,tarjeta,transferencia,mixto',
             'bank_account_id' => 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id',
             'paid_amount' => 'required|numeric|min:0',
-            'mixed_cash_amount' => 'required_if:payment_method,mixto|numeric|min:0',
-            'mixed_card_amount' => 'required_if:payment_method,mixto|numeric|min:0',
-            'mixed_transfer_amount' => 'required_if:payment_method,mixto|numeric|min:0',
+            'mixed_cash_amount' => 'nullable|numeric|min:0',
+            'mixed_card_amount' => 'nullable|numeric|min:0',
+            'mixed_transfer_amount' => 'nullable|numeric|min:0',
         ]);
 
         if ($request->paid_amount < $ticket->total_amount) {
             return back()->withErrors(['paid_amount' => 'El monto pagado es menor al total a pagar'])->withInput();
         }
 
-        $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount);
+        $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount, (float) $ticket->total_amount);
         if ($paymentErrors) {
             return back()->withErrors($paymentErrors)->withInput();
         }
@@ -1460,15 +1464,20 @@ class TicketController extends Controller
         ];
     }
 
-    private function validatePaymentBreakdown(Request $request, float $paidAmount): ?array
+    private function validatePaymentBreakdown(Request $request, float $paidAmount, float $totalAmount): ?array
     {
         if ($request->input('payment_method') !== 'mixto') {
             return null;
         }
 
         $amounts = $this->resolveMixedAmounts($request);
-        if (abs($amounts['total'] - $paidAmount) > 0.01) {
-            return ['mixed_amounts' => ['La suma de los montos mixtos debe ser igual al monto pagado.']];
+        $hasCash = $amounts['cash'] > 0;
+        if (!$hasCash && abs($amounts['total'] - $totalAmount) > 0.01) {
+            $diff = $totalAmount - $amounts['total'];
+            return ['mixed_amounts' => ['Sin efectivo, los montos deben sumar exacto (Faltan: RD$ '.number_format($diff, 2).').']];
+        }
+        if ($hasCash && $amounts['total'] + 0.01 < $totalAmount) {
+            return ['mixed_amounts' => ['Con efectivo, la suma debe ser igual o mayor al total.']];
         }
 
         if ($amounts['transfer'] > 0 && !$request->filled('bank_account_id')) {
@@ -1487,13 +1496,15 @@ class TicketController extends Controller
         }
 
         $method = $request->input('payment_method');
+        $change = (float) $ticket->change;
 
         if ($method === 'mixto') {
             $amounts = $this->resolveMixedAmounts($request);
-            if ($amounts['cash'] > 0) {
+            $cashNet = max(0, $amounts['cash'] - $change);
+            if ($cashNet > 0) {
                 $ticket->payments()->create([
                     'payment_method' => 'efectivo',
-                    'amount' => $amounts['cash'],
+                    'amount' => $cashNet,
                 ]);
             }
             if ($amounts['card'] > 0) {
@@ -1512,11 +1523,18 @@ class TicketController extends Controller
             return;
         }
 
-        $ticket->payments()->create([
-            'payment_method' => $method,
-            'amount' => $request->input('paid_amount'),
-            'bank_account_id' => $method === 'transferencia' ? $request->input('bank_account_id') : null,
-        ]);
+        $amount = (float) $request->input('paid_amount');
+        if ($method === 'efectivo') {
+            $amount = max(0, $amount - $change);
+        }
+
+        if ($amount > 0) {
+            $ticket->payments()->create([
+                'payment_method' => $method,
+                'amount' => $amount,
+                'bank_account_id' => $method === 'transferencia' ? $request->input('bank_account_id') : null,
+            ]);
+        }
     }
 
     private function updateMultiple(Request $request, Ticket $ticket)
@@ -1563,9 +1581,9 @@ class TicketController extends Controller
             $rules['payment_method'] = 'required|in:efectivo,tarjeta,transferencia,mixto';
             $rules['bank_account_id'] = 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id';
             $rules['paid_amount'] = 'required|numeric|min:0';
-            $rules['mixed_cash_amount'] = 'required_if:payment_method,mixto|numeric|min:0';
-            $rules['mixed_card_amount'] = 'required_if:payment_method,mixto|numeric|min:0';
-            $rules['mixed_transfer_amount'] = 'required_if:payment_method,mixto|numeric|min:0';
+            $rules['mixed_cash_amount'] = 'nullable|numeric|min:0';
+            $rules['mixed_card_amount'] = 'nullable|numeric|min:0';
+            $rules['mixed_transfer_amount'] = 'nullable|numeric|min:0';
         }
         $request->validate($rules);
 
@@ -1752,7 +1770,7 @@ class TicketController extends Controller
                 return back()->withErrors(['washes'=>['Debe agregar al menos un servicio, producto, trago, servicio genérico o cargo adicional']])->withInput();
             }
             if(!$pending){
-                $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount);
+                $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount, $total);
                 if ($paymentErrors) {
                     DB::rollBack();
                     return back()->withErrors($paymentErrors)->withInput();
@@ -1889,9 +1907,9 @@ class TicketController extends Controller
             $rules['payment_method'] = 'required|in:efectivo,tarjeta,transferencia,mixto';
             $rules['bank_account_id'] = 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id';
             $rules['paid_amount'] = 'required|numeric|min:0';
-            $rules['mixed_cash_amount'] = 'required_if:payment_method,mixto|numeric|min:0';
-            $rules['mixed_card_amount'] = 'required_if:payment_method,mixto|numeric|min:0';
-            $rules['mixed_transfer_amount'] = 'required_if:payment_method,mixto|numeric|min:0';
+            $rules['mixed_cash_amount'] = 'nullable|numeric|min:0';
+            $rules['mixed_card_amount'] = 'nullable|numeric|min:0';
+            $rules['mixed_transfer_amount'] = 'nullable|numeric|min:0';
         }
 
         $messages = [
@@ -2139,7 +2157,7 @@ class TicketController extends Controller
             }
 
             if (!$pending) {
-                $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount);
+                $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount, $total);
                 if ($paymentErrors) {
                     DB::rollBack();
                     if ($request->expectsJson()) {

@@ -297,16 +297,36 @@
                 $mixCash = $ticket->payments->where('payment_method', 'efectivo')->sum('amount');
                 $mixCard = $ticket->payments->where('payment_method', 'tarjeta')->sum('amount');
                 $mixTransfer = $ticket->payments->where('payment_method', 'transferencia')->sum('amount');
+                $mixCashVisual = $mixCash + ($ticket->change ?? 0);
             @endphp
             <div id="mixed-fields" class="space-y-2" style="{{ $ticket->payment_method === 'mixto' ? '' : 'display:none' }}">
+                <div class="flex flex-wrap gap-4 text-sm">
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" id="mixed_cash_check" onchange="toggleMixedOption('cash')" {{ $mixCashVisual > 0 ? 'checked' : '' }}>
+                        Efectivo
+                    </label>
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" id="mixed_card_check" onchange="toggleMixedOption('card')" {{ $mixCard > 0 ? 'checked' : '' }}>
+                        Tarjeta
+                    </label>
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" id="mixed_transfer_check" onchange="toggleMixedOption('transfer')" {{ $mixTransfer > 0 ? 'checked' : '' }}>
+                        Transferencia
+                    </label>
+                </div>
+                <div id="mixed_cash_field" style="{{ $mixCashVisual > 0 ? '' : 'display:none' }}">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Monto Efectivo</label>
-                    <input type="number" name="mixed_cash_amount" step="0.01" min="0" class="form-input w-full mt-1" value="{{ $mixCash }}" oninput="updateMixedTotal()">
+                    <input type="number" name="mixed_cash_amount" step="0.01" min="0" class="form-input w-full mt-1" value="{{ $mixCashVisual }}" oninput="updateMixedTotal()">
                 </div>
+                </div>
+                <div id="mixed_card_field" style="{{ $mixCard > 0 ? '' : 'display:none' }}">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Monto Tarjeta</label>
                     <input type="number" name="mixed_card_amount" step="0.01" min="0" class="form-input w-full mt-1" value="{{ $mixCard }}" oninput="updateMixedTotal()">
                 </div>
+                </div>
+                <div id="mixed_transfer_field" style="{{ $mixTransfer > 0 ? '' : 'display:none' }}">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Monto Transferencia</label>
                     <input type="number" name="mixed_transfer_amount" step="0.01" min="0" class="form-input w-full mt-1" value="{{ $mixTransfer }}" oninput="updateMixedTotal()">
@@ -319,6 +339,7 @@
                             <option value="{{ $acc->id }}" {{ $acc->id == $ticket->bank_account_id ? 'selected' : '' }}>{{ $acc->bank }} - {{ $acc->account }}</option>
                         @endforeach
                     </select>
+                </div>
                 </div>
                 <p class="text-sm text-red-600" id="mixed-warning"></p>
             </div>
@@ -453,7 +474,6 @@
             } else {
                 warn.textContent = '';
             }
-            updateMixedTotal();
         }
 
         function setPaidFull(){
@@ -594,7 +614,9 @@
             if (!service || !variant) return;
             addGenericServiceRow(variant, qty, service.name);
             variantSelect.value = '';
+            serviceSelect.value = '';
             qtyInput.value = 1;
+            populateGenericVariants('');
             updateGenericVariantPrice();
         }
 
@@ -809,20 +831,55 @@
             }
         }
 
+        function toggleMixedOption(type) {
+            const check = document.getElementById(`mixed_${type}_check`);
+            const field = document.getElementById(`mixed_${type}_field`);
+            const input = document.querySelector(`[name="mixed_${type}_amount"]`);
+            if (!check || !field || !input) return;
+            field.style.display = check.checked ? '' : 'none';
+            if (!check.checked) {
+                input.value = '';
+            }
+            const bankSelect = document.getElementById('mixed_bank_account_select');
+            if (type === 'transfer' && bankSelect) {
+                bankSelect.disabled = !check.checked;
+            }
+            updateMixedTotal();
+        }
+
         function getMixedTotal() {
-            const cash = parseFloat(document.querySelector('[name="mixed_cash_amount"]')?.value || 0);
-            const card = parseFloat(document.querySelector('[name="mixed_card_amount"]')?.value || 0);
-            const transfer = parseFloat(document.querySelector('[name="mixed_transfer_amount"]')?.value || 0);
-            return cash + card + transfer;
+            const cashChecked = document.getElementById('mixed_cash_check')?.checked;
+            const cardChecked = document.getElementById('mixed_card_check')?.checked;
+            const transferChecked = document.getElementById('mixed_transfer_check')?.checked;
+            const cash = cashChecked ? parseFloat(document.querySelector('[name="mixed_cash_amount"]')?.value || 0) : 0;
+            const card = cardChecked ? parseFloat(document.querySelector('[name="mixed_card_amount"]')?.value || 0) : 0;
+            const transfer = transferChecked ? parseFloat(document.querySelector('[name="mixed_transfer_amount"]')?.value || 0) : 0;
+            return { cash, card, transfer, total: cash + card + transfer, hasCash: cashChecked && cash > 0 };
         }
 
         function updateMixedTotal() {
             if (document.getElementById('payment_method').value !== 'mixto') return;
-            const mixedTotal = getMixedTotal();
-            const paid = parseFloat(document.getElementById('paid_amount').value || 0);
+            const mixed = getMixedTotal();
+            const total = currentTotal;
             const warning = document.getElementById('mixed-warning');
-            if (Math.abs(mixedTotal - paid) > 0.01) {
-                warning.textContent = 'La suma de los montos mixtos debe coincidir con el monto pagado.';
+            const bankSelect = document.getElementById('mixed_bank_account_select');
+            const transferChecked = document.getElementById('mixed_transfer_check')?.checked;
+            if (bankSelect) {
+                bankSelect.disabled = !transferChecked;
+            }
+            document.getElementById('paid_amount').value = mixed.total.toFixed(2);
+            updateChange();
+            if (!mixed.hasCash) {
+                if (Math.abs(mixed.total - total) > 0.01) {
+                    const diff = Math.abs(total - mixed.total);
+                    warning.textContent = `Sin efectivo, los montos deben sumar exacto (Faltan: RD$ ${formatCurrency(diff)})`;
+                } else {
+                    warning.textContent = '';
+                }
+                return;
+            }
+            if (mixed.total + 0.01 < total) {
+                warning.textContent = 'Con efectivo, la suma debe ser igual o mayor al total.';
             } else {
                 warning.textContent = '';
             }
@@ -886,13 +943,13 @@
             };
             function show(filter=''){list.innerHTML=''; const f=filter.toLowerCase(); options.forEach(o=>{if(!o.value) return; if(o.text.toLowerCase().includes(f)){const li=document.createElement('li');li.textContent=o.text; li.dataset.val=o.value; li.className='px-2 py-1 cursor-pointer hover:bg-gray-200'; list.appendChild(li);}}); list.classList.toggle('hidden', list.children.length===0);}
             input.addEventListener('focus', ()=>{
-                if (options.some(o => o.value && o.text === input.value)) {
+                if (input.value === select.options[select.selectedIndex]?.text) {
                     input.value = '';
                 }
                 show();
             });
             input.addEventListener('click', ()=>{
-                if (options.some(o => o.value && o.text === input.value)) {
+                if (input.value === select.options[select.selectedIndex]?.text) {
                     input.value = '';
                 }
                 show();
@@ -1065,10 +1122,15 @@
 
                     const paymentMethod = form.querySelector('#payment_method')?.value;
                     if (submitter?.value !== 'pending' && paymentMethod === 'mixto') {
-                        const mixedTotal = getMixedTotal();
-                        const paid = parseFloat(form.querySelector('[name=paid_amount]').value || 0);
-                        if (Math.abs(mixedTotal - paid) > 0.01) {
-                            this.errors.push('La suma de los montos mixtos debe ser igual al monto pagado.');
+                        const mixed = getMixedTotal();
+                        if (!mixed.hasCash && Math.abs(mixed.total - currentTotal) > 0.01) {
+                            const diff = Math.abs(currentTotal - mixed.total);
+                            this.errors.push(`Sin efectivo, los montos deben sumar exacto (Faltan: RD$ ${formatCurrency(diff)})`);
+                            this.showErrors();
+                            return;
+                        }
+                        if (mixed.hasCash && mixed.total + 0.01 < currentTotal) {
+                            this.errors.push('Con efectivo, la suma debe ser igual o mayor al total.');
                             this.showErrors();
                             return;
                         }

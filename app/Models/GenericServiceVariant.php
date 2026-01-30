@@ -20,4 +20,9 @@ class GenericServiceVariant extends Model
     {
         return $this->belongsTo(GenericService::class, 'generic_service_id');
     }
+
+    public function genericService()
+    {
+        return $this->belongsTo(GenericService::class, 'generic_service_id');
+    }
 }
