@@ -11,7 +11,7 @@ class TicketDetail extends Model
 
     protected $fillable = [
         'ticket_id', 'ticket_wash_id', 'type', 'service_id',
-        'product_id', 'drink_id', 'quantity', 'unit_price', 'discount_amount', 'subtotal', 'description'
+        'product_id', 'drink_id', 'generic_service_variant_id', 'quantity', 'unit_price', 'discount_amount', 'subtotal', 'description'
     ];
 
     public function ticket()
@@ -37,5 +37,10 @@ class TicketDetail extends Model
     public function drink()
     {
         return $this->belongsTo(Drink::class);
+    }
+
+    public function genericServiceVariant()
+    {
+        return $this->belongsTo(GenericServiceVariant::class);
     }
 }

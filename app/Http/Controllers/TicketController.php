@@ -17,6 +17,9 @@ use App\Models\Drink;
 use App\Models\Discount;
 use App\Models\BankAccount;
 use App\Models\CommissionSetting;
+use App\Models\GenericService;
+use App\Models\GenericServiceVariant;
+use App\Models\TicketPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -38,7 +41,16 @@ class TicketController extends Controller
         $filters['start'] = $filters['start'] ?? now()->toDateString();
         $filters['end'] = $filters['end'] ?? now()->toDateString();
 
-        $query = Ticket::with(['details', 'bankAccount', 'washes.vehicle', 'washes.vehicleType', 'washes.washer', 'washes.details.service'])->where('canceled', false);
+        $query = Ticket::with([
+            'details',
+            'details.genericServiceVariant.service',
+            'bankAccount',
+            'payments',
+            'washes.vehicle',
+            'washes.vehicleType',
+            'washes.washer',
+            'washes.details.service',
+        ])->where('canceled', false);
 
         if ($request->boolean('pending')) {
             $query->where('pending', true);
@@ -90,7 +102,7 @@ class TicketController extends Controller
             'start' => ['nullable', 'date', 'before_or_equal:end'],
             'end' => ['nullable', 'date', 'after_or_equal:start'],
         ]);
-        $query = Ticket::with(['details', 'bankAccount'])->where('canceled', true);
+        $query = Ticket::with(['details', 'details.genericServiceVariant.service', 'bankAccount'])->where('canceled', true);
 
         if ($request->filled('start')) {
             $query->whereDate('created_at', '>=', $request->start);
@@ -124,7 +136,16 @@ class TicketController extends Controller
         $filters['start'] = $filters['start'] ?? now()->toDateString();
         $filters['end'] = $filters['end'] ?? now()->toDateString();
 
-        $query = Ticket::with(['details', 'bankAccount', 'washes.vehicle', 'washes.vehicleType', 'washes.washer', 'washes.details.service'])
+        $query = Ticket::with([
+            'details',
+            'details.genericServiceVariant.service',
+            'bankAccount',
+            'payments',
+            'washes.vehicle',
+            'washes.vehicleType',
+            'washes.washer',
+            'washes.details.service',
+        ])
             ->where('canceled', false)
             ->where('pending', true);
 
@@ -170,7 +191,14 @@ class TicketController extends Controller
 
     public function create()
     {
-        $services = Service::where('active', true)->with('prices')->get();
+        $services = Service::where('active', true)
+            ->whereHas('prices', function ($q) {
+                $q->whereNotNull('vehicle_type_id');
+            })
+            ->with(['prices' => function ($q) {
+                $q->whereNotNull('vehicle_type_id');
+            }])
+            ->get();
         $servicePrices = [];
         foreach ($services as $service) {
             foreach ($service->prices as $price) {
@@ -221,6 +249,13 @@ class TicketController extends Controller
                 $d->discountable_id => ['type'=>$d->amount_type,'amount'=>$d->amount]
             ]);
 
+        $genericServices = GenericService::where('active', true)
+            ->with(['variants' => function ($q) {
+                $q->where('active', true)->orderBy('name');
+            }])
+            ->orderBy('name')
+            ->get();
+
         return view('tickets.create', [
             'services' => $services,
             'vehicleTypes' => VehicleType::all(),
@@ -235,6 +270,7 @@ class TicketController extends Controller
             'serviceDiscounts' => $serviceDiscounts,
             'productDiscounts' => $productDiscounts,
             'drinkDiscounts' => $drinkDiscounts,
+            'genericServices' => $genericServices,
         ]);
     }
 
@@ -271,12 +307,19 @@ class TicketController extends Controller
             'drink_ids.*' => 'exists:drinks,id',
             'drink_quantities' => 'nullable|array',
             'drink_quantities.*' => 'integer|min:1',
+            'generic_service_variant_ids' => 'nullable|array',
+            'generic_service_variant_ids.*' => 'exists:generic_service_variants,id',
+            'generic_service_quantities' => 'nullable|array',
+            'generic_service_quantities.*' => 'integer|min:1',
             'ticket_date' => 'required|date|before_or_equal:today',
         ];
         if (!$pending) {
             $rules['payment_method'] = 'required|in:efectivo,tarjeta,transferencia,mixto';
             $rules['bank_account_id'] = 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id';
             $rules['paid_amount'] = 'required|numeric|min:0';
+            $rules['mixed_cash_amount'] = 'nullable|numeric|min:0';
+            $rules['mixed_card_amount'] = 'nullable|numeric|min:0';
+            $rules['mixed_transfer_amount'] = 'nullable|numeric|min:0';
         }
 
         $request->validate($rules, [
@@ -301,6 +344,8 @@ class TicketController extends Controller
             'quantities.*.min' => 'La cantidad debe ser al menos 1.',
             'drink_ids.*.exists' => 'Alguno de los tragos seleccionados es inválido.',
             'drink_quantities.*.min' => 'La cantidad debe ser al menos 1.',
+            'generic_service_variant_ids.*.exists' => 'Alguno de los servicios genéricos seleccionados es inválido.',
+            'generic_service_quantities.*.min' => 'La cantidad debe ser al menos 1.',
             'payment_method.required' => 'Debe seleccionar un método de pago.',
             'bank_account_id.required_if' => 'Debe seleccionar una cuenta bancaria.',
             'paid_amount.required' => 'Debe ingresar el monto pagado.',
@@ -470,6 +515,37 @@ class TicketController extends Controller
                 }
             }
 
+            if ($request->generic_service_variant_ids) {
+                foreach ($request->generic_service_variant_ids as $index => $variantId) {
+                    $variant = GenericServiceVariant::with('service')->find($variantId);
+                    $qty = $request->generic_service_quantities[$index] ?? 1;
+                    if (!$variant || !$variant->active || !$variant->service?->active) {
+                        DB::rollBack();
+                        $message = ['generic_service_variant_ids' => ['Servicio genérico no disponible']];
+                        if ($request->expectsJson()) {
+                            return response()->json(['errors' => $message], 422);
+                        }
+                        return back()->withErrors($message)->withInput();
+                    }
+                    $price = $variant->price;
+                    $subtotal = $price * $qty;
+
+                    $details[] = [
+                        'type' => 'generic_service',
+                        'service_id' => null,
+                        'product_id' => null,
+                        'drink_id' => null,
+                        'generic_service_variant_id' => $variantId,
+                        'quantity' => $qty,
+                        'unit_price' => $price,
+                        'discount_amount' => 0,
+                        'subtotal' => $subtotal,
+                    ];
+
+                    $total += $subtotal;
+                }
+            }
+
             if ($request->charge_descriptions) {
                 foreach ($request->charge_descriptions as $i => $desc) {
                     $amount = floatval($request->charge_amounts[$i] ?? 0);
@@ -492,11 +568,22 @@ class TicketController extends Controller
 
             if (count($details) === 0) {
                 DB::rollBack();
-                $message = ['service_ids' => ['Debe agregar al menos un servicio, producto o trago']];
+                $message = ['service_ids' => ['Debe agregar al menos un servicio, producto, trago o servicio genérico']];
                 if ($request->expectsJson()) {
                     return response()->json(['errors' => $message], 422);
                 }
                 return back()->withErrors($message)->withInput();
+            }
+
+            if (!$pending) {
+                $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount, $total);
+                if ($paymentErrors) {
+                    DB::rollBack();
+                    if ($request->expectsJson()) {
+                        return response()->json(['errors' => $paymentErrors], 422);
+                    }
+                    return back()->withErrors($paymentErrors)->withInput();
+                }
             }
 
             if (!$pending && $request->paid_amount < $total) {
@@ -568,6 +655,8 @@ class TicketController extends Controller
                 InventoryMovement::create($mov);
             }
 
+            $this->syncTicketPayments($ticket, $request, $pending);
+
             if ($request->washer_id && $hasService) {
                 Washer::whereId($request->washer_id)->increment('pending_amount', $commissionAmount);
             }
@@ -604,7 +693,16 @@ class TicketController extends Controller
             return redirect()->route('tickets.index')->with('error', 'No se puede editar un ticket con más de 6 horas de creado.');
         }
 
-        $services = Service::where('active', true)->with('prices')->get();
+        $ticket->loadMissing('details.genericServiceVariant.genericService', 'payments');
+
+        $services = Service::where('active', true)
+            ->whereHas('prices', function ($q) {
+                $q->whereNotNull('vehicle_type_id');
+            })
+            ->with(['prices' => function ($q) {
+                $q->whereNotNull('vehicle_type_id');
+            }])
+            ->get();
         $servicePrices = [];
         foreach ($services as $service) {
             foreach ($service->prices as $price) {
@@ -643,8 +741,26 @@ class TicketController extends Controller
                 $d->discountable_id => ['type'=>$d->amount_type,'amount'=>$d->amount]
             ]);
 
+        $genericServices = GenericService::where('active', true)
+            ->with(['variants' => function ($q) {
+                $q->where('active', true)->orderBy('name');
+            }])
+            ->orderBy('name')
+            ->get();
+
         $ticketProducts = $ticket->details->where('type','product')->map(fn($d)=>['id'=>$d->product_id,'qty'=>$d->quantity]);
         $ticketDrinks = $ticket->details->where('type','drink')->map(fn($d)=>['id'=>$d->drink_id,'qty'=>$d->quantity]);
+        $ticketGenericServices = $ticket->details()
+            ->whereNotNull('generic_service_variant_id')
+            ->with('genericServiceVariant.genericService')
+            ->get()
+            ->map(function ($d) {
+                return [
+                    'service_id' => $d->genericServiceVariant->generic_service_id,
+                    'variant_id' => $d->generic_service_variant_id,
+                    'qty' => $d->quantity,
+                ];
+            });
 
         $ticketWashes = $ticket->washes->map(function($w) use ($servicePrices, $serviceDiscounts, $ticket) {
             $serviceIds = $w->details->where('type','service')->pluck('service_id');
@@ -697,8 +813,10 @@ class TicketController extends Controller
             'serviceDiscounts' => $serviceDiscounts,
             'productDiscounts' => $productDiscounts,
             'drinkDiscounts' => $drinkDiscounts,
+            'genericServices' => $genericServices,
             'ticketProducts' => $ticketProducts,
             'ticketDrinks' => $ticketDrinks,
+            'ticketGenericServices' => $ticketGenericServices,
             'ticketWashes' => $ticketWashes,
             'ticketExtras' => $ticketExtras,
         ]);
@@ -739,6 +857,10 @@ class TicketController extends Controller
                 'drink_ids.*' => 'exists:drinks,id',
                 'drink_quantities' => 'nullable|array',
                 'drink_quantities.*' => 'integer|min:1',
+                'generic_service_variant_ids' => 'nullable|array',
+                'generic_service_variant_ids.*' => 'exists:generic_service_variants,id',
+                'generic_service_quantities' => 'nullable|array',
+                'generic_service_quantities.*' => 'integer|min:1',
                 'ticket_date' => 'required|date|before_or_equal:today',
             ];
 
@@ -746,6 +868,9 @@ class TicketController extends Controller
                 $rules['payment_method'] = 'required|in:efectivo,tarjeta,transferencia,mixto';
                 $rules['bank_account_id'] = 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id';
                 $rules['paid_amount'] = 'required|numeric|min:0';
+                $rules['mixed_cash_amount'] = 'nullable|numeric|min:0';
+                $rules['mixed_card_amount'] = 'nullable|numeric|min:0';
+                $rules['mixed_transfer_amount'] = 'nullable|numeric|min:0';
             }
 
             $request->validate($rules, [
@@ -908,9 +1033,42 @@ class TicketController extends Controller
                     }
                 }
 
+                if ($request->generic_service_variant_ids) {
+                    foreach ($request->generic_service_variant_ids as $index => $variantId) {
+                        $variant = GenericServiceVariant::with('service')->find($variantId);
+                        $qty = $request->generic_service_quantities[$index] ?? 1;
+                        if (!$variant || !$variant->active || !$variant->service?->active) {
+                            DB::rollBack();
+                            return back()->withErrors(['generic_service_variant_ids' => ['Servicio genérico no disponible']])->withInput();
+                        }
+                        $price = $variant->price;
+                        $subtotal = $price * $qty;
+                        $details[] = [
+                            'type' => 'generic_service',
+                            'service_id' => null,
+                            'product_id' => null,
+                            'drink_id' => null,
+                            'generic_service_variant_id' => $variantId,
+                            'quantity' => $qty,
+                            'unit_price' => $price,
+                            'discount_amount' => 0,
+                            'subtotal' => $subtotal,
+                        ];
+                        $total += $subtotal;
+                    }
+                }
+
                 if (count($details) === 0) {
                     DB::rollBack();
-                    return back()->withErrors(['service_ids'=>['Debe agregar al menos un servicio, producto o trago']])->withInput();
+                    return back()->withErrors(['service_ids'=>['Debe agregar al menos un servicio, producto, trago o servicio genérico']])->withInput();
+                }
+
+                if (!$pending) {
+                    $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount, $total);
+                    if ($paymentErrors) {
+                        DB::rollBack();
+                        return back()->withErrors($paymentErrors)->withInput();
+                    }
                 }
 
                 if (!$pending && $request->paid_amount < $total) {
@@ -985,6 +1143,8 @@ class TicketController extends Controller
                     InventoryMovement::create($mov);
                 }
 
+                $this->syncTicketPayments($ticket, $request, $pending);
+
                 if ($request->washer_id && $hasWash) {
                     Washer::whereId($request->washer_id)->increment('pending_amount', $commissionAmount);
                 }
@@ -1007,7 +1167,16 @@ class TicketController extends Controller
             'washers.*' => 'nullable|exists:washers,id',
             'payment_method' => 'required|in:efectivo,tarjeta,transferencia,mixto',
             'bank_account_id' => 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id',
+            'paid_amount' => 'required|numeric|min:0',
+            'mixed_cash_amount' => 'nullable|numeric|min:0',
+            'mixed_card_amount' => 'nullable|numeric|min:0',
+            'mixed_transfer_amount' => 'nullable|numeric|min:0',
         ]);
+
+        $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount, (float) $ticket->total_amount);
+        if ($paymentErrors) {
+            return back()->withErrors($paymentErrors)->withInput();
+        }
 
         foreach ($ticket->washes as $wash) {
             $new = $request->input('washers.' . $wash->id) ?: null;
@@ -1088,6 +1257,8 @@ class TicketController extends Controller
                 'bank_account_id' => $request->bank_account_id,
                 'washer_pending_amount' => $ticket->washer_pending_amount,
             ]);
+
+            $this->syncTicketPayments($ticket, $request, false);
         });
 
         return redirect()->route('tickets.index')->with('success', 'Ticket actualizado.');
@@ -1109,10 +1280,18 @@ class TicketController extends Controller
             'payment_method' => 'required|in:efectivo,tarjeta,transferencia,mixto',
             'bank_account_id' => 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id',
             'paid_amount' => 'required|numeric|min:0',
+            'mixed_cash_amount' => 'nullable|numeric|min:0',
+            'mixed_card_amount' => 'nullable|numeric|min:0',
+            'mixed_transfer_amount' => 'nullable|numeric|min:0',
         ]);
 
         if ($request->paid_amount < $ticket->total_amount) {
             return back()->withErrors(['paid_amount' => 'El monto pagado es menor al total a pagar'])->withInput();
+        }
+
+        $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount, (float) $ticket->total_amount);
+        if ($paymentErrors) {
+            return back()->withErrors($paymentErrors)->withInput();
         }
 
         $ticket->update([
@@ -1123,6 +1302,8 @@ class TicketController extends Controller
             'pending' => false,
             'paid_at' => $ticket->created_at,
         ]);
+
+        $this->syncTicketPayments($ticket, $request, false);
 
         return redirect()
             ->route('tickets.index')
@@ -1136,8 +1317,10 @@ class TicketController extends Controller
             'details.service',
             'details.product',
             'details.drink',
+            'details.genericServiceVariant.service',
             'vehicle',
             'washer',
+            'washes.washer',
         ])->findOrFail($id);
 
         return view('tickets.print', compact('ticket'));
@@ -1282,6 +1465,93 @@ class TicketController extends Controller
         return redirect()->route('tickets.index')->with('success', 'Ticket cancelado');
     }
 
+    private function resolveMixedAmounts(Request $request): array
+    {
+        $cash = (float) $request->input('mixed_cash_amount', 0);
+        $card = (float) $request->input('mixed_card_amount', 0);
+        $transfer = (float) $request->input('mixed_transfer_amount', 0);
+
+        return [
+            'cash' => $cash,
+            'card' => $card,
+            'transfer' => $transfer,
+            'total' => $cash + $card + $transfer,
+        ];
+    }
+
+    private function validatePaymentBreakdown(Request $request, float $paidAmount, float $totalAmount): ?array
+    {
+        if ($request->input('payment_method') !== 'mixto') {
+            return null;
+        }
+
+        $amounts = $this->resolveMixedAmounts($request);
+        $hasCash = $amounts['cash'] > 0;
+        if (!$hasCash && abs($amounts['total'] - $totalAmount) > 0.01) {
+            $diff = $totalAmount - $amounts['total'];
+            return ['mixed_amounts' => ['Sin efectivo, los montos deben sumar exacto (Faltan: RD$ '.number_format($diff, 2).').']];
+        }
+        if ($hasCash && $amounts['total'] + 0.01 < $totalAmount) {
+            return ['mixed_amounts' => ['Con efectivo, la suma debe ser igual o mayor al total.']];
+        }
+
+        if ($amounts['transfer'] > 0 && !$request->filled('bank_account_id')) {
+            return ['bank_account_id' => ['Debe seleccionar una cuenta bancaria para la transferencia.']];
+        }
+
+        return null;
+    }
+
+    private function syncTicketPayments(Ticket $ticket, Request $request, bool $pending): void
+    {
+        $ticket->payments()->delete();
+
+        if ($pending) {
+            return;
+        }
+
+        $method = $request->input('payment_method');
+        $change = (float) $ticket->change;
+
+        if ($method === 'mixto') {
+            $amounts = $this->resolveMixedAmounts($request);
+            $cashNet = max(0, $amounts['cash'] - $change);
+            if ($cashNet > 0) {
+                $ticket->payments()->create([
+                    'payment_method' => 'efectivo',
+                    'amount' => $cashNet,
+                ]);
+            }
+            if ($amounts['card'] > 0) {
+                $ticket->payments()->create([
+                    'payment_method' => 'tarjeta',
+                    'amount' => $amounts['card'],
+                ]);
+            }
+            if ($amounts['transfer'] > 0) {
+                $ticket->payments()->create([
+                    'payment_method' => 'transferencia',
+                    'amount' => $amounts['transfer'],
+                    'bank_account_id' => $request->input('bank_account_id'),
+                ]);
+            }
+            return;
+        }
+
+        $amount = (float) $request->input('paid_amount');
+        if ($method === 'efectivo') {
+            $amount = max(0, $amount - $change);
+        }
+
+        if ($amount > 0) {
+            $ticket->payments()->create([
+                'payment_method' => $method,
+                'amount' => $amount,
+                'bank_account_id' => $method === 'transferencia' ? $request->input('bank_account_id') : null,
+            ]);
+        }
+    }
+
     private function updateMultiple(Request $request, Ticket $ticket)
     {
         if ($ticket->created_at->lt(now()->subHours(6)) && auth()->user()->role === 'cajero') {
@@ -1313,6 +1583,10 @@ class TicketController extends Controller
             'drink_ids.*' => 'exists:drinks,id',
             'drink_quantities' => 'nullable|array',
             'drink_quantities.*' => 'integer|min:1',
+            'generic_service_variant_ids' => 'nullable|array',
+            'generic_service_variant_ids.*' => 'exists:generic_service_variants,id',
+            'generic_service_quantities' => 'nullable|array',
+            'generic_service_quantities.*' => 'integer|min:1',
             'charge_descriptions' => 'nullable|array',
             'charge_descriptions.*' => 'nullable|string|max:255',
             'charge_amounts' => 'nullable|array',
@@ -1322,6 +1596,9 @@ class TicketController extends Controller
             $rules['payment_method'] = 'required|in:efectivo,tarjeta,transferencia,mixto';
             $rules['bank_account_id'] = 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id';
             $rules['paid_amount'] = 'required|numeric|min:0';
+            $rules['mixed_cash_amount'] = 'nullable|numeric|min:0';
+            $rules['mixed_card_amount'] = 'nullable|numeric|min:0';
+            $rules['mixed_transfer_amount'] = 'nullable|numeric|min:0';
         }
         $request->validate($rules);
 
@@ -1465,6 +1742,31 @@ class TicketController extends Controller
                 }
             }
 
+            if ($request->generic_service_variant_ids) {
+                foreach ($request->generic_service_variant_ids as $index => $variantId) {
+                    $variant = GenericServiceVariant::with('service')->find($variantId);
+                    $qty = $request->generic_service_quantities[$index] ?? 1;
+                    if (!$variant || !$variant->active || !$variant->service?->active) {
+                        DB::rollBack();
+                        return back()->withErrors(['generic_service_variant_ids' => ['Servicio genérico no disponible']])->withInput();
+                    }
+                    $price = $variant->price;
+                    $subtotal = $price * $qty;
+                    $details[] = [
+                        'type' => 'generic_service',
+                        'service_id' => null,
+                        'product_id' => null,
+                        'drink_id' => null,
+                        'generic_service_variant_id' => $variantId,
+                        'quantity' => $qty,
+                        'unit_price' => $price,
+                        'discount_amount' => 0,
+                        'subtotal' => $subtotal,
+                    ];
+                    $total += $subtotal;
+                }
+            }
+
             if($request->charge_descriptions){
                 foreach($request->charge_descriptions as $i=>$desc){
                     $amount = floatval($request->charge_amounts[$i] ?? 0);
@@ -1480,7 +1782,14 @@ class TicketController extends Controller
 
             if(empty($washInfo) && empty($details)){
                 DB::rollBack();
-                return back()->withErrors(['washes'=>['Debe agregar al menos un servicio, producto, trago o cargo adicional']])->withInput();
+                return back()->withErrors(['washes'=>['Debe agregar al menos un servicio, producto, trago, servicio genérico o cargo adicional']])->withInput();
+            }
+            if(!$pending){
+                $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount, $total);
+                if ($paymentErrors) {
+                    DB::rollBack();
+                    return back()->withErrors($paymentErrors)->withInput();
+                }
             }
             if(!$pending && $request->paid_amount < $total){
                 DB::rollBack();
@@ -1565,6 +1874,7 @@ class TicketController extends Controller
                 $mov['ticket_id']=$ticket->id;
                 InventoryMovement::create($mov);
             }
+            $this->syncTicketPayments($ticket, $request, $pending);
             DB::commit();
             $redirect = redirect()->route('tickets.index')->with('success','Ticket actualizado.');
             if (! $pending) {
@@ -1602,12 +1912,19 @@ class TicketController extends Controller
             'drink_ids.*' => 'exists:drinks,id',
             'drink_quantities' => 'nullable|array',
             'drink_quantities.*' => 'integer|min:1',
+            'generic_service_variant_ids' => 'nullable|array',
+            'generic_service_variant_ids.*' => 'exists:generic_service_variants,id',
+            'generic_service_quantities' => 'nullable|array',
+            'generic_service_quantities.*' => 'integer|min:1',
         ];
 
         if (!$pending) {
             $rules['payment_method'] = 'required|in:efectivo,tarjeta,transferencia,mixto';
             $rules['bank_account_id'] = 'required_if:payment_method,transferencia|nullable|exists:bank_accounts,id';
             $rules['paid_amount'] = 'required|numeric|min:0';
+            $rules['mixed_cash_amount'] = 'nullable|numeric|min:0';
+            $rules['mixed_card_amount'] = 'nullable|numeric|min:0';
+            $rules['mixed_transfer_amount'] = 'nullable|numeric|min:0';
         }
 
         $messages = [
@@ -1636,6 +1953,8 @@ class TicketController extends Controller
             'quantities.*.min' => 'La cantidad debe ser al menos 1.',
             'drink_ids.*.exists' => 'Alguno de los tragos seleccionados es inválido.',
             'drink_quantities.*.min' => 'La cantidad debe ser al menos 1.',
+            'generic_service_variant_ids.*.exists' => 'Alguno de los servicios genéricos seleccionados es inválido.',
+            'generic_service_quantities.*.min' => 'La cantidad debe ser al menos 1.',
             'charge_amounts.*.min' => 'El cargo adicional debe ser mayor o igual a 0.',
             'payment_method.required' => 'Debe seleccionar un método de pago.',
             'bank_account_id.required_if' => 'Debe seleccionar una cuenta bancaria.',
@@ -1789,6 +2108,35 @@ class TicketController extends Controller
                 }
             }
 
+            if ($request->generic_service_variant_ids) {
+                foreach ($request->generic_service_variant_ids as $index => $variantId) {
+                    $variant = GenericServiceVariant::with('service')->find($variantId);
+                    $qty = $request->generic_service_quantities[$index] ?? 1;
+                    if (!$variant || !$variant->active || !$variant->service?->active) {
+                        DB::rollBack();
+                        $message = ['generic_service_variant_ids' => ['Servicio genérico no disponible']];
+                        if ($request->expectsJson()) {
+                            return response()->json(['errors' => $message], 422);
+                        }
+                        return back()->withErrors($message)->withInput();
+                    }
+                    $price = $variant->price;
+                    $subtotal = $price * $qty;
+                    $details[] = [
+                        'type' => 'generic_service',
+                        'service_id' => null,
+                        'product_id' => null,
+                        'drink_id' => null,
+                        'generic_service_variant_id' => $variantId,
+                        'quantity' => $qty,
+                        'unit_price' => $price,
+                        'discount_amount' => 0,
+                        'subtotal' => $subtotal,
+                    ];
+                    $total += $subtotal;
+                }
+            }
+
             if ($request->charge_descriptions) {
                 foreach ($request->charge_descriptions as $i => $desc) {
                     $amount = floatval($request->charge_amounts[$i] ?? 0);
@@ -1816,11 +2164,22 @@ class TicketController extends Controller
 
             if (($serviceCount + count($details)) === 0) {
                 DB::rollBack();
-                $message = ['washes' => ['Debe agregar al menos un servicio, producto o trago']];
+                $message = ['washes' => ['Debe agregar al menos un servicio, producto, trago o servicio genérico']];
                 if ($request->expectsJson()) {
                     return response()->json(['errors' => $message], 422);
                 }
                 return back()->withErrors($message)->withInput();
+            }
+
+            if (!$pending) {
+                $paymentErrors = $this->validatePaymentBreakdown($request, (float) $request->paid_amount, $total);
+                if ($paymentErrors) {
+                    DB::rollBack();
+                    if ($request->expectsJson()) {
+                        return response()->json(['errors' => $paymentErrors], 422);
+                    }
+                    return back()->withErrors($paymentErrors)->withInput();
+                }
             }
 
             if (!$pending && $request->paid_amount < $total) {
@@ -1915,6 +2274,8 @@ class TicketController extends Controller
                 $mov['ticket_id'] = $ticket->id;
                 InventoryMovement::create($mov);
             }
+
+            $this->syncTicketPayments($ticket, $request, $pending);
 
             DB::commit();
 
