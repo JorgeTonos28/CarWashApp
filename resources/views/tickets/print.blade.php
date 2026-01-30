@@ -193,6 +193,7 @@
 
                 <div class="wash-receipt">
                     <div class="wash-title">COMPROBANTE DE LAVADO</div>
+                    <div class="center bold">TICKET: #{{ str_pad($ticket->id, 6, '0', STR_PAD_LEFT) }}</div>
 
                     <div class="wash-row">
                         <span class="bold">LAVADOR:</span>
