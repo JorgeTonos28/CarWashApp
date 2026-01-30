@@ -20,9 +20,9 @@
                 <tr class="border-t cursor-pointer {{ $ticket->pending ? 'bg-red-100' : ($needsWasher ? 'bg-orange-100' : '') }}"
                     x-on:click="
                         if (selected === {{ $ticket->id }}) {
-                            selected = null; selectedPending = false; selectedNoWasher = false; selectedCreated = null;
+                            selected = null; selectedPending = false; selectedNoWasher = false; selectedHasWash = false; selectedCreated = null;
                         } else {
-                            selected = {{ $ticket->id }}; selectedPending = {{ $ticket->pending ? 'true' : 'false' }}; selectedNoWasher = {{ $needsWasher ? 'true' : 'false' }}; selectedCreated = '{{ $ticket->created_at }}';
+                            selected = {{ $ticket->id }}; selectedPending = {{ $ticket->pending ? 'true' : 'false' }}; selectedNoWasher = {{ $needsWasher ? 'true' : 'false' }}; selectedHasWash = {{ $ticket->washes->isNotEmpty() ? 'true' : 'false' }}; selectedCreated = '{{ $ticket->created_at }}';
                         }
                     "
                     :class="selected === {{ $ticket->id }} ? (selectedPending ? 'bg-red-300' : (selectedNoWasher ? 'bg-orange-300' : 'bg-blue-100')) : ''">

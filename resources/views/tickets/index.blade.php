@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div x-data="filterTable('{{ route('tickets.index') }}', {selected: null, selectedPending: false, selectedNoWasher: false, selectedCreated: null, pending: {{ $filters['pending'] ?? 'null' }}, role: '{{ Auth::user()->role }}', editBase: '{{ url('tickets') }}', printBase: '{{ url('tickets/print') }}'})" x-on:click.away="selected = null; selectedPending=false; selectedNoWasher=false" class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div x-data="filterTable('{{ route('tickets.index') }}', {selected: null, selectedPending: false, selectedNoWasher: false, selectedHasWash: false, selectedCreated: null, pending: {{ $filters['pending'] ?? 'null' }}, role: '{{ Auth::user()->role }}', editBase: '{{ url('tickets') }}', printBase: '{{ url('tickets/print') }}', printOptions: true})" x-on:click.away="selected = null; selectedPending=false; selectedNoWasher=false; selectedHasWash=false" class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
 
 
         <div class="mb-4 flex flex-wrap items-end gap-4">
@@ -46,6 +46,23 @@
         </div>
 
         <div x-html="tableHtml"></div>
+        <x-modal name="print-options" focusable>
+            <div class="p-6">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Opciones de impresión</h2>
+                <p class="text-sm text-gray-600">Selecciona qué deseas imprimir para este ticket.</p>
+                <div class="mt-6 space-y-3">
+                    <x-secondary-button class="w-full justify-center" x-on:click="$dispatch('close'); openPrintWith('invoice')">
+                        Solo factura
+                    </x-secondary-button>
+                    <x-secondary-button class="w-full justify-center" x-on:click="$dispatch('close'); openPrintWith('washer')">
+                        Solo comprobante de lavador
+                    </x-secondary-button>
+                    <x-primary-button class="w-full justify-center" x-on:click="$dispatch('close'); openPrintWith('both')">
+                        Factura + comprobante
+                    </x-primary-button>
+                </div>
+            </div>
+        </x-modal>
         <x-modal name="cancel-error" focusable>
             <div class="p-6">
                 <h2 class="text-lg font-medium text-gray-900 mb-4">No se puede cancelar</h2>

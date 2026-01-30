@@ -6,6 +6,7 @@ window.Alpine = Alpine;
 
 Alpine.data('filterTable', (url, extra = {}) => ({
     ...extra,
+    printMode: 'both',
     tableHtml: '',
     fetchTable() {
         const form = this.$refs.form;
@@ -66,7 +67,26 @@ Alpine.data('filterTable', (url, extra = {}) => ({
     },
     openPrintTab() {
         if (!this.selected || !this.printBase) return;
+        if (this.printOptions) {
+            const hasWash = !!this.selectedHasWash;
+            const hasWasher = !this.selectedNoWasher;
+            if (hasWash && hasWasher) {
+                this.printMode = 'both';
+                this.$dispatch('open-modal', 'print-options');
+            } else {
+                this.openPrintWith('invoice');
+            }
+            return;
+        }
         window.open(`${this.printBase}/${this.selected}`, '_blank');
+    },
+    openPrintWith(mode) {
+        if (!this.selected || !this.printBase) return;
+        const url = new URL(`${this.printBase}/${this.selected}`, window.location.origin);
+        if (mode && mode !== 'both') {
+            url.searchParams.set('print', mode);
+        }
+        window.open(url.toString(), '_blank');
     }
 }));
 
