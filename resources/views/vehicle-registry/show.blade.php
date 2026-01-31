@@ -19,7 +19,10 @@
 
         <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <h3 class="text-lg font-semibold">Visitas diarias</h3>
+                <div>
+                    <h3 class="text-lg font-semibold">Visitas diarias</h3>
+                    <p class="text-sm text-gray-600">Total: <strong>{{ number_format($visitsTotal ?? 0) }}</strong></p>
+                </div>
                 <form method="GET" class="flex items-center gap-2">
                     <label class="text-sm text-gray-600">Periodo</label>
                     <select name="timeframe" class="form-select" onchange="this.form.submit()">

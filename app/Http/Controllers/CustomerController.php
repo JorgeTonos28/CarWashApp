@@ -78,6 +78,7 @@ class CustomerController extends Controller
             $labels[] = $label;
             $data[] = (int) ($ticketsInRange[$label] ?? 0);
         }
+        $visitsTotal = $ticketsInRange->sum();
 
         return view('customers.show', [
             'customer' => $customer,
@@ -85,6 +86,7 @@ class CustomerController extends Controller
             'chartData' => $data,
             'timeframe' => $timeframe,
             'billedTotal' => $billedTotal,
+            'visitsTotal' => $visitsTotal,
         ]);
     }
 

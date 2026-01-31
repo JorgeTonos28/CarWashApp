@@ -58,6 +58,7 @@
                 'pendingTickets' => $pendingTickets,
                 'vehicleChartLabels' => $vehicleChartLabels,
                 'vehicleChartData' => $vehicleChartData,
+                'vehicleChartTotal' => $vehicleChartTotal,
                 'ticketWashes' => $ticketWashes,
             ])
         </div>
