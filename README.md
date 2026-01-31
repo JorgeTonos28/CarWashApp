@@ -73,6 +73,42 @@ Los seeders crean usuarios iniciales:
   ```
 - El nombre del negocio se configura en **Apariencia** y se utiliza en el título del navegador y en la impresión de tickets.
 
+## Configurar envío de correos en cPanel (notificación de vehículo listo)
+
+Sigue estos pasos para habilitar el envío de correos desde el sistema cuando el vehículo está listo para recoger:
+
+1. **Crear la cuenta de correo en cPanel**
+   - Ingresa a **cPanel → Email Accounts**.
+   - Crea una cuenta (ej. `notificaciones@tudominio.com`) y guarda la contraseña.
+2. **Obtener los datos SMTP**
+   - En la cuenta creada, revisa **Connect Devices** para ver:
+     - Host SMTP (ej. `mail.tudominio.com`)
+     - Puerto (normalmente **465** con SSL o **587** con TLS)
+     - Tipo de cifrado (SSL/TLS)
+3. **Configurar el archivo `.env`**
+   - Actualiza estas variables con los datos del correo:
+     ```env
+     MAIL_MAILER=smtp
+     MAIL_HOST=mail.tudominio.com
+     MAIL_PORT=465
+     MAIL_USERNAME=notificaciones@tudominio.com
+     MAIL_PASSWORD=TU_PASSWORD
+     MAIL_ENCRYPTION=ssl
+     MAIL_FROM_ADDRESS=notificaciones@tudominio.com
+     MAIL_FROM_NAME="CarWash"
+     ```
+4. **Limpiar cachés de configuración**
+   - Ejecuta en la terminal:
+     ```bash
+     php artisan config:clear
+     php artisan cache:clear
+     ```
+5. **Probar el envío desde el sistema**
+   - Genera una notificación de “vehículo listo para recoger” y confirma que el correo llega a destino.
+6. **Si el correo no llega**
+   - Verifica que el puerto y cifrado coincidan con los datos de cPanel.
+   - Revisa el **Email Deliverability** en cPanel para asegurar que el dominio tenga registros SPF/DKIM válidos.
+
 ## Scripts útiles
 
 - Ejecutar tests:
