@@ -184,7 +184,7 @@ class DashboardController extends Controller
 
         $lastExpenses = $pettyCashExpenses->take(5);
 
-        [$vehicleLabels, $vehicleData] = $this->buildVehicleChart($start, $end);
+        [$vehicleChartLabels, $vehicleChartData, $vehicleChartTotal] = $this->buildVehicleChart($start, $end);
 
         $washStatuses = [TicketWash::STATUS_PENDING, TicketWash::STATUS_READY];
         $ticketWashes = TicketWash::with(['vehicle', 'ticket.customer', 'washer'])
@@ -279,8 +279,9 @@ class DashboardController extends Controller
                 'pendingTickets',
                 'washerDebts',
                 'pettyCashAmount',
-                'vehicleLabels',
-                'vehicleData',
+                'vehicleChartLabels',
+                'vehicleChartData',
+                'vehicleChartTotal',
                 'ticketWashes'
             ));
         }
@@ -310,8 +311,9 @@ class DashboardController extends Controller
             'washerDebts' => $washerDebts,
             'pettyCashAmount' => $pettyCashAmount,
             'lowStockProducts' => $lowStockProducts,
-            'vehicleChartLabels' => $vehicleLabels,
-            'vehicleChartData' => $vehicleData,
+            'vehicleChartLabels' => $vehicleChartLabels,
+            'vehicleChartData' => $vehicleChartData,
+            'vehicleChartTotal' => $vehicleChartTotal,
             'ticketWashes' => $ticketWashes,
         ]);
     }
@@ -322,26 +324,35 @@ class DashboardController extends Controller
         $endDate = Carbon::parse($end)->endOfDay();
 
         $diffDays = $startDate->diffInDays($endDate);
+        $diffHours = $startDate->diffInHours($endDate);
         $labels = [];
         $data = [];
 
-        if ($diffDays === 0) {
-            $endHour = Carbon::now()->min($endDate)->hour;
+        if ($diffDays <= 2) {
+            $bucketHours = $diffHours <= 24 ? 1 : 2;
+            $labelFormat = $diffDays === 0 ? 'H:00' : 'm-d H:00';
             $counts = TicketWash::whereHas('ticket', fn ($q) => $q->where('canceled', false))
                 ->whereBetween('created_at', [$startDate, $endDate])
-                ->selectRaw('HOUR(created_at) as visit_hour, COUNT(*) as total')
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') as visit_hour, COUNT(*) as total")
                 ->groupBy('visit_hour')
                 ->pluck('total', 'visit_hour');
 
-            for ($hour = 0; $hour <= $endHour; $hour++) {
-                $labels[] = str_pad((string) $hour, 2, '0', STR_PAD_LEFT).':00';
-                $data[] = (int) ($counts[$hour] ?? 0);
+            $period = CarbonPeriod::create($startDate->copy()->startOfHour(), "{$bucketHours} hours", $endDate);
+            foreach ($period as $date) {
+                $label = $date->format('Y-m-d H:00');
+                $labels[] = $date->format($labelFormat);
+                $total = 0;
+                for ($offset = 0; $offset < $bucketHours; $offset++) {
+                    $hourKey = $date->copy()->addHours($offset)->format('Y-m-d H:00:00');
+                    $total += (int) ($counts[$hourKey] ?? 0);
+                }
+                $data[] = $total;
             }
 
-            return [$labels, $data];
+            return [$labels, $data, array_sum($data)];
         }
 
-        if ($diffDays <= 31) {
+        if ($diffDays <= 120) {
             $counts = TicketWash::whereHas('ticket', fn ($q) => $q->where('canceled', false))
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->selectRaw('DATE(created_at) as visit_date, COUNT(*) as total')
@@ -355,7 +366,29 @@ class DashboardController extends Controller
                 $data[] = (int) ($counts[$label] ?? 0);
             }
 
-            return [$labels, $data];
+            return [$labels, $data, array_sum($data)];
+        }
+
+        if ($diffDays <= 365) {
+            $counts = TicketWash::whereHas('ticket', fn ($q) => $q->where('canceled', false))
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('DATE(created_at) as visit_date, COUNT(*) as total')
+                ->groupBy('visit_date')
+                ->pluck('total', 'visit_date');
+
+            $period = CarbonPeriod::create($startDate->copy()->startOfWeek(), '1 week', $endDate);
+            foreach ($period as $date) {
+                $label = $date->format('Y-m-d');
+                $labels[] = $label;
+                $weekTotal = 0;
+                for ($offset = 0; $offset < 7; $offset++) {
+                    $dayKey = $date->copy()->addDays($offset)->format('Y-m-d');
+                    $weekTotal += (int) ($counts[$dayKey] ?? 0);
+                }
+                $data[] = $weekTotal;
+            }
+
+            return [$labels, $data, array_sum($data)];
         }
 
         if ($diffDays <= 730) {
@@ -372,7 +405,7 @@ class DashboardController extends Controller
                 $data[] = (int) ($counts[$label] ?? 0);
             }
 
-            return [$labels, $data];
+            return [$labels, $data, array_sum($data)];
         }
 
         $counts = TicketWash::whereHas('ticket', fn ($q) => $q->where('canceled', false))
@@ -388,7 +421,7 @@ class DashboardController extends Controller
             $data[] = (int) ($counts[$label] ?? 0);
         }
 
-        return [$labels, $data];
+        return [$labels, $data, array_sum($data)];
     }
 
     public function download(Request $request)

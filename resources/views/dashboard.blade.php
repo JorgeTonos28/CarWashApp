@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div x-data="filterTable('{{ route('dashboard') }}', { onUpdate: () => window.initDashboardVehicleChart?.() })" class="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div x-data="filterTable('{{ route('dashboard') }}', { onUpdate() { this.$nextTick(() => window.initDashboardVehicleChart?.()); } })" class="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
         @if(isset($lowStockProducts) && $lowStockProducts->count() > 0)
             <div class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 mb-4 flex justify-between items-center">
                 <div>
@@ -56,8 +56,9 @@
                 'pettyCashTotal' => $pettyCashTotal,
                 'accountsReceivable' => $accountsReceivable,
                 'pendingTickets' => $pendingTickets,
-                'vehicleLabels' => $vehicleChartLabels,
-                'vehicleData' => $vehicleChartData,
+                'vehicleChartLabels' => $vehicleChartLabels,
+                'vehicleChartData' => $vehicleChartData,
+                'vehicleChartTotal' => $vehicleChartTotal,
                 'ticketWashes' => $ticketWashes,
             ])
         </div>

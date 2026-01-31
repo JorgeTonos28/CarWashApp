@@ -81,6 +81,7 @@ class VehicleRegistryController extends Controller
             $labels[] = $label;
             $data[] = (int) ($visitsInRange[$label] ?? 0);
         }
+        $visitsTotal = $visitsInRange->sum();
 
         return view('vehicle-registry.show', [
             'vehicle' => $vehicle,
@@ -89,6 +90,7 @@ class VehicleRegistryController extends Controller
             'chartData' => $data,
             'timeframe' => $timeframe,
             'billedTotal' => $billedTotal,
+            'visitsTotal' => $visitsTotal,
         ]);
     }
 
