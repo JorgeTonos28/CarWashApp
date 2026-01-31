@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div x-data="filterTable('{{ route('tickets.index') }}', {selected: null, selectedPending: false, selectedNoWasher: false, selectedHasWash: false, selectedCreated: null, pending: {{ $filters['pending'] ?? 'null' }}, role: '{{ Auth::user()->role }}', editBase: '{{ url('tickets') }}', printBase: '{{ url('tickets/print') }}', printOptions: true})" x-on:click.away="selected = null; selectedPending=false; selectedNoWasher=false; selectedHasWash=false" class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div x-data="filterTable('{{ route('tickets.index') }}', {selected: null, selectedPending: false, selectedNoWasher: false, selectedHasWash: false, selectedHasAssignedWasher: false, selectedCreated: null, pending: {{ $filters['pending'] ?? 'null' }}, role: '{{ Auth::user()->role }}', editBase: '{{ url('tickets') }}', printBase: '{{ url('tickets/print') }}', printOptions: true})" x-on:click.away="selected = null; selectedPending=false; selectedNoWasher=false; selectedHasWash=false; selectedHasAssignedWasher=false" class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
 
 
         <div class="mb-4 flex flex-wrap items-end gap-4">
@@ -40,7 +40,7 @@
             <button x-show="selected && selectedPending" x-on:click="$dispatch('open-modal', 'pay-' + selected)" class="text-green-600" title="Pagar">
                 <i class="fa-solid fa-money-bill-wave fa-lg"></i>
             </button>
-            <button x-show="selected && !selectedPending" x-on:click="openPrintTab()" class="text-indigo-600" title="Imprimir factura">
+            <button x-show="selected && !selectedPending" x-on:click="selectedHasAssignedWasher ? $dispatch('open-modal', 'print-options') : openPrintWith('invoice')" class="text-indigo-600" title="Imprimir factura">
                 <i class="fa-solid fa-print fa-lg"></i>
             </button>
         </div>

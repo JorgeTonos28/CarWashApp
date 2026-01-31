@@ -184,7 +184,7 @@ class DashboardController extends Controller
 
         $lastExpenses = $pettyCashExpenses->take(5);
 
-        [$vehicleLabels, $vehicleData] = $this->buildVehicleChart($start, $end);
+        [$vehicleChartLabels, $vehicleChartData] = $this->buildVehicleChart($start, $end);
 
         $washStatuses = [TicketWash::STATUS_PENDING, TicketWash::STATUS_READY];
         $ticketWashes = TicketWash::with(['vehicle', 'ticket.customer', 'washer'])
@@ -279,8 +279,8 @@ class DashboardController extends Controller
                 'pendingTickets',
                 'washerDebts',
                 'pettyCashAmount',
-                'vehicleLabels',
-                'vehicleData',
+                'vehicleChartLabels',
+                'vehicleChartData',
                 'ticketWashes'
             ));
         }
@@ -310,8 +310,8 @@ class DashboardController extends Controller
             'washerDebts' => $washerDebts,
             'pettyCashAmount' => $pettyCashAmount,
             'lowStockProducts' => $lowStockProducts,
-            'vehicleChartLabels' => $vehicleLabels,
-            'vehicleChartData' => $vehicleData,
+            'vehicleChartLabels' => $vehicleChartLabels,
+            'vehicleChartData' => $vehicleChartData,
             'ticketWashes' => $ticketWashes,
         ]);
     }
