@@ -1,144 +1,129 @@
-<aside :class="{'translate-x-0': sidebarOpen}" class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 -translate-x-full md:relative md:translate-x-0 md:w-48">
-    <div class="p-4 h-full overflow-y-auto">
+<aside :class="{'translate-x-0': sidebarOpen}" class="fixed inset-y-0 left-0 z-40 w-72 -translate-x-full transform bg-slate-950/90 backdrop-blur-2xl transition-transform duration-200 md:relative md:translate-x-0">
+    <div class="flex h-full flex-col gap-6 overflow-y-auto px-5 py-6">
+        <div class="flex items-center gap-3">
+            <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/20 text-cyan-200">
+                <i class="fa-solid fa-water"></i>
+            </span>
+            <div>
+                <p class="text-sm font-semibold text-white">{{ $appearance->business_name ?? 'CarWash App' }}</p>
+                <p class="text-xs text-white/60">Control Operativo</p>
+            </div>
+        </div>
         <nav class="space-y-2">
-            <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('dashboard') ? 'bg-gray-200' : '' }}">
-                <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>
-                </svg>
+            <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'sidebar-link-active' : '' }}">
+                <i class="fa-solid fa-chart-pie"></i>
                 Panel
             </a>
-            <a href="{{ route('petty-cash.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('petty-cash.*') ? 'bg-gray-200' : '' }}">
-                <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4.5a2.25 2.25 0 0 0-4.5 0V6M9 16.5v3m0 0a2.25 2.25 0 1 0 4.5 0v-3m-4.5 0H3.75A2.25 2.25 0 0 1 1.5 14.25V9.75A2.25 2.25 0 0 1 3.75 7.5H20.25A2.25 2.25 0 0 1 22.5 9.75v4.5a2.25 2.25 0 0 1-2.25 2.25H15" />
-                </svg>
+            <a href="{{ route('petty-cash.index') }}" class="sidebar-link {{ request()->routeIs('petty-cash.*') ? 'sidebar-link-active' : '' }}">
+                <i class="fa-solid fa-cash-register"></i>
                 Caja Chica
             </a>
-            <a href="{{ route('washers.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('washers.*') ? 'bg-gray-200' : '' }}">
-                <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5V4H2v16h5m0 0v-2.5A2.5 2.5 0 0 1 9.5 15h5a2.5 2.5 0 0 1 2.5 2.5V20m-10 0h10" />
-                </svg>
+            <a href="{{ route('washers.index') }}" class="sidebar-link {{ request()->routeIs('washers.*') ? 'sidebar-link-active' : '' }}">
+                <i class="fa-solid fa-people-group"></i>
                 Lavadores
             </a>
             <div x-data="{ open: {{ request()->routeIs('services.*','products.*','drinks.*') ? 'true' : 'false' }} }">
-                <button type="button" @click="open=!open" class="w-full text-left px-3 py-2 font-semibold rounded hover:bg-gray-100 {{ request()->routeIs('services.*','products.*','drinks.*') ? 'bg-gray-200' : '' }}">
-                    <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18V3H3zm4.5 4.5h9m-9 4.5h9m-9 4.5h9" />
-                    </svg>
-                    Catálogo
+                <button type="button" @click="open=!open" class="sidebar-link w-full justify-between {{ request()->routeIs('services.*','products.*','drinks.*') ? 'sidebar-link-active' : '' }}">
+                    <span class="flex items-center gap-3">
+                        <i class="fa-solid fa-layer-group"></i>
+                        Catálogo
+                    </span>
+                    <i class="fa-solid fa-chevron-down text-xs transition" :class="{ 'rotate-180': open }"></i>
                 </button>
-                <div x-show="open" x-cloak class="pl-6 space-y-1">
-                    <a href="{{ route('services.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('services.*') ? 'border-b-2 border-gray-500' : '' }}">
-                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3l1.61 14.49a1.125 1.125 0 0 0 1.12.99h11.04a1.125 1.125 0 0 0 1.12-.99L20.25 3H3.75zm9 18a1.5 1.5 0 0 1-3 0" />
-                        </svg>
+                <div x-show="open" x-cloak class="mt-2 space-y-1 pl-4">
+                    <a href="{{ route('services.index') }}" class="sidebar-link {{ request()->routeIs('services.*') ? 'sidebar-link-active' : '' }}">
+                        <i class="fa-solid fa-hand-sparkles"></i>
                         Servicios
                     </a>
-                    <a href="{{ route('products.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('products.*') ? 'border-b-2 border-gray-500' : '' }}">
-                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75A1.5 1.5 0 0 0 6 5.25V21l6-3 6 3V5.25a1.5 1.5 0 0 0-1.5-1.5h-9z" />
-                        </svg>
+                    <a href="{{ route('products.index') }}" class="sidebar-link {{ request()->routeIs('products.*') ? 'sidebar-link-active' : '' }}">
+                        <i class="fa-solid fa-box-open"></i>
                         Productos
                     </a>
-                    <a href="{{ route('drinks.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('drinks.*') ? 'border-b-2 border-gray-500' : '' }}">
-                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3h10.5M9 3v12a3 3 0 1 0 6 0V3" />
-                        </svg>
+                    <a href="{{ route('drinks.index') }}" class="sidebar-link {{ request()->routeIs('drinks.*') ? 'sidebar-link-active' : '' }}">
+                        <i class="fa-solid fa-martini-glass-citrus"></i>
                         Tragos
                     </a>
                 </div>
             </div>
             <div x-data="{ open: {{ request()->routeIs('tickets.*') ? 'true' : 'false' }} }">
-                <button type="button" @click="open=!open" class="w-full text-left px-3 py-2 font-semibold rounded hover:bg-gray-100 {{ request()->routeIs('tickets.*') ? 'bg-gray-200' : '' }}">
-                    <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 9.75h15M5.25 6h13.5a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1-.75-.75V6.75a.75.75 0 0 1 .75-.75z" />
-                    </svg>
-                    Tickets
+                <button type="button" @click="open=!open" class="sidebar-link w-full justify-between {{ request()->routeIs('tickets.*') ? 'sidebar-link-active' : '' }}">
+                    <span class="flex items-center gap-3">
+                        <i class="fa-solid fa-receipt"></i>
+                        Tickets
+                    </span>
+                    <i class="fa-solid fa-chevron-down text-xs transition" :class="{ 'rotate-180': open }"></i>
                 </button>
-                <div x-show="open" x-cloak class="pl-6 space-y-1">
-                    <a href="{{ route('tickets.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('tickets.index') ? 'border-b-2 border-gray-500' : '' }}">
-                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
+                <div x-show="open" x-cloak class="mt-2 space-y-1 pl-4">
+                    <a href="{{ route('tickets.index') }}" class="sidebar-link {{ request()->routeIs('tickets.index') ? 'sidebar-link-active' : '' }}">
+                        <i class="fa-solid fa-circle-check"></i>
                         Activos
                     </a>
-                    <a href="{{ route('tickets.canceled') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('tickets.canceled') ? 'border-b-2 border-gray-500' : '' }}">
-                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75l10.5 10.5m0-10.5L6.75 17.25" />
-                        </svg>
+                    <a href="{{ route('tickets.canceled') }}" class="sidebar-link {{ request()->routeIs('tickets.canceled') ? 'sidebar-link-active' : '' }}">
+                        <i class="fa-solid fa-circle-xmark"></i>
                         Cancelados
                     </a>
                 </div>
             </div>
             <div x-data="{ open: {{ request()->routeIs('customers.*','vehicle-registry.*') ? 'true' : 'false' }} }">
-                <button type="button" @click="open=!open" class="w-full text-left px-3 py-2 font-semibold rounded hover:bg-gray-100 {{ request()->routeIs('customers.*','vehicle-registry.*') ? 'bg-gray-200' : '' }}">
-                    <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 6.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0zM3 19.5a6 6 0 0 1 18 0" />
-                    </svg>
-                    Clientes y Vehículos
+                <button type="button" @click="open=!open" class="sidebar-link w-full justify-between {{ request()->routeIs('customers.*','vehicle-registry.*') ? 'sidebar-link-active' : '' }}">
+                    <span class="flex items-center gap-3">
+                        <i class="fa-solid fa-people-arrows"></i>
+                        Clientes y Vehículos
+                    </span>
+                    <i class="fa-solid fa-chevron-down text-xs transition" :class="{ 'rotate-180': open }"></i>
                 </button>
-                <div x-show="open" x-cloak class="pl-6 space-y-1">
-                    <a href="{{ route('customers.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('customers.*') ? 'border-b-2 border-gray-500' : '' }}">
-                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372c1.3 0 2.53-.264 3.65-.74M4.5 19.128a9.38 9.38 0 0 1-2.625.372c-1.3 0-2.53-.264-3.65-.74M12 6.75a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zm7.5 0a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0z" />
-                        </svg>
+                <div x-show="open" x-cloak class="mt-2 space-y-1 pl-4">
+                    <a href="{{ route('customers.index') }}" class="sidebar-link {{ request()->routeIs('customers.*') ? 'sidebar-link-active' : '' }}">
+                        <i class="fa-solid fa-user-group"></i>
                         Clientes
                     </a>
-                    <a href="{{ route('vehicle-registry.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('vehicle-registry.*') ? 'border-b-2 border-gray-500' : '' }}">
-                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-2.25-3.75h-10.5L4.5 8.25m15 0v9.375a.375.375 0 0 1-.375.375h-1.5a.375.375 0 0 1-.375-.375V15H7.5v2.25a.375.375 0 0 1-.375.375h-1.5a.375.375 0 0 1-.375-.375V8.25m15 0H4.5" />
-                        </svg>
+                    <a href="{{ route('vehicle-registry.index') }}" class="sidebar-link {{ request()->routeIs('vehicle-registry.*') ? 'sidebar-link-active' : '' }}">
+                        <i class="fa-solid fa-car-side"></i>
                         Parque Vehicular
                     </a>
                 </div>
             </div>
             @if(auth()->user()->role === 'admin')
             <div x-data="{ open: {{ request()->routeIs('discounts.*','users.*','bank-accounts.*','appearance.*','settings.*') ? 'true' : 'false' }} }">
-                <button type="button" @click="open=!open" class="w-full text-left px-3 py-2 font-semibold rounded hover:bg-gray-100 {{ request()->routeIs('discounts.*','users.*','bank-accounts.*','appearance.*','settings.*') ? 'bg-gray-200' : '' }}">
-                    <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 1 15 0 7.5 7.5 0 0 1-15 0z" />
-                    </svg>
-                    Configuración
+                <button type="button" @click="open=!open" class="sidebar-link w-full justify-between {{ request()->routeIs('discounts.*','users.*','bank-accounts.*','appearance.*','settings.*') ? 'sidebar-link-active' : '' }}">
+                    <span class="flex items-center gap-3">
+                        <i class="fa-solid fa-gear"></i>
+                        Configuración
+                    </span>
+                    <i class="fa-solid fa-chevron-down text-xs transition" :class="{ 'rotate-180': open }"></i>
                 </button>
-                <div x-show="open" x-cloak class="pl-6 space-y-1">
-                    <a href="{{ route('discounts.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('discounts.*') ? 'border-b-2 border-gray-500' : '' }}">
-                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75v10.5M6.75 6.75v10.5m-1.5-9h14.5m-14.5 4.5h14.5" />
-                        </svg>
+                <div x-show="open" x-cloak class="mt-2 space-y-1 pl-4">
+                    <a href="{{ route('discounts.index') }}" class="sidebar-link {{ request()->routeIs('discounts.*') ? 'sidebar-link-active' : '' }}">
+                        <i class="fa-solid fa-tags"></i>
                         Descuentos
                     </a>
-                    <a href="{{ route('bank-accounts.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('bank-accounts.*') ? 'border-b-2 border-gray-500' : '' }}">
-                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l9.72-9.72a.75.75 0 0 1 1.06 0l9.72 9.72m-19.5 0h19.5M4.5 12v8.25a.75.75 0 0 0 .75.75h13.5a.75.75 0 0 0 .75-.75V12" />
-                        </svg>
+                    <a href="{{ route('bank-accounts.index') }}" class="sidebar-link {{ request()->routeIs('bank-accounts.*') ? 'sidebar-link-active' : '' }}">
+                        <i class="fa-solid fa-building-columns"></i>
                         Cuentas Bancarias
                     </a>
-                    <a href="{{ route('appearance.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('appearance.*') ? 'border-b-2 border-gray-500' : '' }}">
-                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h18v18H3V3zm3 12l4-4 3 3 5-6 4 7H6z" />
-                        </svg>
+                    <a href="{{ route('appearance.index') }}" class="sidebar-link {{ request()->routeIs('appearance.*') ? 'sidebar-link-active' : '' }}">
+                        <i class="fa-solid fa-palette"></i>
                         Apariencia
                     </a>
-                    <a href="{{ route('settings.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('settings.*') ? 'border-b-2 border-gray-500' : '' }}">
-                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h3m-6 6h9m-3 6h3M9 6a1.5 1.5 0 1 0 0 3h6a1.5 1.5 0 1 0 0-3H9zm0 6a1.5 1.5 0 1 0 0 3h6a1.5 1.5 0 1 0 0-3H9zm0 6a1.5 1.5 0 1 0 0 3h6a1.5 1.5 0 1 0 0-3H9z" />
-                        </svg>
+                    <a href="{{ route('settings.index') }}" class="sidebar-link {{ request()->routeIs('settings.*') ? 'sidebar-link-active' : '' }}">
+                        <i class="fa-solid fa-sliders"></i>
                         Ajustes
                     </a>
-                    <a href="{{ route('users.index') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('users.*') ? 'border-b-2 border-gray-500' : '' }}">
-                        <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-4.215A3 3 0 0 0 15.101 10.8L12 10.2l-3.101.6a3 3 0 0 0-3.494 1.985L4 17h5m6 0v2.25a3 3 0 1 1-6 0V17m6 0h-6" />
-                        </svg>
+                    <a href="{{ route('users.index') }}" class="sidebar-link {{ request()->routeIs('users.*') ? 'sidebar-link-active' : '' }}">
+                        <i class="fa-solid fa-users"></i>
                         Usuarios
                     </a>
                 </div>
             </div>
             @endif
-            <a href="{{ route('profile.edit') }}" class="block px-3 py-2 rounded hover:bg-gray-100 {{ request()->routeIs('profile.*') ? 'bg-gray-200' : '' }}">
-                <svg class="inline-block w-4 h-4 mr-1 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 7.5a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.5 20.25a8.25 8.25 0 0 1 15 0" />
-                </svg>
+            <a href="{{ route('profile.edit') }}" class="sidebar-link {{ request()->routeIs('profile.*') ? 'sidebar-link-active' : '' }}">
+                <i class="fa-solid fa-id-badge"></i>
                 Perfil
             </a>
         </nav>
+        <div class="mt-auto rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-white/70">
+            <p class="font-semibold text-white">Tip del día</p>
+            <p>Activa alertas para stock bajo y mantén el flujo eficiente.</p>
+        </div>
     </div>
 </aside>

@@ -1,43 +1,64 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Panel') }}
-        </h2>
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Centro de control</p>
+                <h2 class="text-2xl font-semibold text-slate-900">Panel Operativo</h2>
+            </div>
+            <div class="badge-pill">
+                <i class="fa-solid fa-clock"></i>
+                <span>{{ now()->format('d M Y, h:i A') }}</span>
+            </div>
+        </div>
     </x-slot>
 
-    <div x-data="filterTable('{{ route('dashboard') }}', { onUpdate() { this.$nextTick(() => window.initDashboardVehicleChart?.()); } })" class="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div x-data="filterTable('{{ route('dashboard') }}', { onUpdate() { this.$nextTick(() => window.initDashboardVehicleChart?.()); } })" class="mx-auto max-w-7xl space-y-8">
         @if(isset($lowStockProducts) && $lowStockProducts->count() > 0)
-            <div class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 mb-4 flex justify-between items-center">
+            <div class="card-muted flex flex-wrap items-center justify-between gap-4 border border-orange-500/30 bg-gradient-to-r from-orange-500/20 via-slate-900/80 to-slate-950/80">
                 <div>
-                    <p class="font-bold">¡Atención!</p>
-                    <p>Hay {{ $lowStockProducts->count() }} productos con stock bajo.</p>
+                    <p class="text-xs uppercase tracking-[0.3em] text-orange-200">¡Atención!</p>
+                    <p class="text-lg font-semibold text-white">Hay {{ $lowStockProducts->count() }} productos con stock bajo.</p>
+                    <p class="text-sm text-orange-100/70">Revisa el inventario para reabastecer.</p>
                 </div>
-                <a href="{{ route('inventory.index') }}" class="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded">
+                <a href="{{ route('inventory.index') }}" class="btn-light">
+                    <i class="fa-solid fa-warehouse"></i>
                     Ver Inventario
                 </a>
             </div>
         @endif
 
-        <div class="flex flex-wrap items-end gap-4 mb-4">
-            <form method="GET" x-ref="form" class="flex items-end gap-2">
+        <div class="card flex flex-wrap items-end gap-4">
+            <form method="GET" x-ref="form" class="flex flex-wrap items-end gap-3">
                 <div>
-                    <label class="block text-sm">Desde</label>
+                    <label class="block text-xs font-semibold uppercase tracking-widest text-slate-500">Desde</label>
                     <input type="date" name="start" value="{{ $filters['start'] ?? '' }}" class="form-input" @change="fetchTable()">
                 </div>
                 <div>
-                    <label class="block text-sm">Hasta</label>
+                    <label class="block text-xs font-semibold uppercase tracking-widest text-slate-500">Hasta</label>
                     <input type="date" name="end" value="{{ $filters['end'] ?? '' }}" class="form-input" @change="fetchTable()">
                 </div>
             </form>
-            <button type="button" class="px-4 py-2 bg-gray-300 rounded" @click="
+            <button type="button" class="btn-neutral" @click="
                 const today = new Date().toLocaleDateString('en-CA');
                 document.querySelector('[name=\'start\']').value = today;
                 document.querySelector('[name=\'end\']').value = today;
                 fetchTable();
-            ">Ahora</button>
-            <a href="{{ route('tickets.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Nuevo Ticket</a>
-            <a href="{{ route('petty-cash.create') }}" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Nuevo Gasto</a>
-            <a href="{{ route('dashboard.download', request()->all()) }}" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Descargar</a>
+            ">
+                <i class="fa-solid fa-bolt"></i>
+                Ahora
+            </button>
+            <a href="{{ route('tickets.create') }}" class="btn-primary">
+                <i class="fa-solid fa-receipt"></i>
+                Nuevo Ticket
+            </a>
+            <a href="{{ route('petty-cash.create') }}" class="btn-secondary">
+                <i class="fa-solid fa-money-bill-wave"></i>
+                Nuevo Gasto
+            </a>
+            <a href="{{ route('dashboard.download', request()->all()) }}" class="btn-light">
+                <i class="fa-solid fa-download"></i>
+                Descargar
+            </a>
         </div>
 
         <div x-html="tableHtml">
@@ -91,18 +112,19 @@
                     datasets: [{
                         label: 'Vehículos',
                         data: resolvedValues,
-                        borderColor: '#0f766e',
-                        backgroundColor: 'rgba(15, 118, 110, 0.1)',
+                        borderColor: '#22d3ee',
+                        backgroundColor: 'rgba(34, 211, 238, 0.18)',
                         fill: true,
-                        tension: 0.3,
-                        pointRadius: 0,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#38bdf8',
                     }]
                 },
                 options: {
                     responsive: true,
                     scales: {
-                        x: { ticks: { maxTicksLimit: 8 } },
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                        x: { ticks: { maxTicksLimit: 8, color: '#cbd5f5' }, grid: { color: 'rgba(148,163,184,0.2)' } },
+                        y: { beginAtZero: true, ticks: { precision: 0, color: '#cbd5f5' }, grid: { color: 'rgba(148,163,184,0.2)' } }
                     }
                 }
             });
