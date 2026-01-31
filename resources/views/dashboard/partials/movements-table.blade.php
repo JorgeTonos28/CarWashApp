@@ -1,18 +1,18 @@
-<div class="bg-white shadow-sm sm:rounded-lg overflow-hidden max-h-96 overflow-y-auto">
-    <table class="min-w-full table-auto border">
-        <thead class="bg-gray-200">
+<div class="card overflow-hidden max-h-96 overflow-y-auto">
+    <table class="table-modern">
+        <thead>
             <tr>
-                <th class="border px-4 py-2">Concepto</th>
-                <th class="border px-4 py-2">Fecha</th>
-                <th class="border px-4 py-2">Monto</th>
+                <th>Concepto</th>
+                <th>Fecha</th>
+                <th class="text-right">Monto</th>
             </tr>
         </thead>
         <tbody>
             @foreach($movements as $m)
                 <tr class="border-t">
-                    <td class="px-4 py-2">{{ $m['description'] }}</td>
-                    <td class="px-4 py-2">{{ $m['date'] }}</td>
-                    <td class="px-4 py-2">RD$ {{ number_format($m['amount'],2) }}</td>
+                    <td class="font-semibold text-slate-900">{{ $m['description'] }}</td>
+                    <td>{{ $m['date'] }}</td>
+                    <td class="text-right">RD$ {{ number_format($m['amount'],2) }}</td>
                 </tr>
             @endforeach
         </tbody>

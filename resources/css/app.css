@@ -4,7 +4,11 @@
 
 @layer base {
     body {
-        @apply bg-gray-50 text-gray-800;
+        @apply bg-slate-950 text-slate-100 antialiased;
+        background-image: radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 45%),
+            radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.18), transparent 40%),
+            radial-gradient(circle at 80% 10%, rgba(14, 116, 144, 0.35), transparent 45%);
+        background-attachment: fixed;
     }
     [x-cloak] {
         display: none !important;
@@ -12,10 +16,110 @@
 }
 
 @layer components {
+    .app-shell {
+        @apply min-h-screen flex flex-col;
+    }
+    .glass-panel {
+        @apply bg-white/85 text-slate-900 border border-white/40 shadow-[0_25px_70px_rgba(15,23,42,0.35)] backdrop-blur-xl;
+    }
+    .glass-dark {
+        @apply bg-slate-950/70 text-slate-100 border border-white/10 shadow-[0_18px_45px_rgba(15,23,42,0.65)] backdrop-blur-2xl;
+    }
+    .card {
+        @apply glass-panel rounded-2xl p-6;
+    }
+    .card-muted {
+        @apply glass-dark rounded-2xl p-6;
+    }
+    .stat-card {
+        @apply relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.5)];
+    }
+    .stat-label {
+        @apply text-xs uppercase tracking-[0.2em] text-cyan-200/80;
+    }
+    .stat-value {
+        @apply text-3xl md:text-4xl font-semibold;
+    }
+    .badge-pill {
+        @apply inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white;
+    }
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950;
+    }
     .btn-primary {
-        @apply px-4 py-2 rounded bg-primary text-white hover:bg-primary-light;
+        @apply btn bg-gradient-to-r from-cyan-500 via-sky-500 to-indigo-500 text-white shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-indigo-400 focus:ring-cyan-400;
     }
     .btn-secondary {
-        @apply px-4 py-2 rounded bg-secondary text-white hover:bg-secondary-dark;
+        @apply btn border border-slate-200/70 bg-slate-50 text-slate-700 hover:bg-slate-100 focus:ring-slate-200;
+    }
+    .btn-outline {
+        @apply btn border border-slate-200/70 text-slate-900 hover:bg-slate-100/70 focus:ring-slate-200;
+    }
+    .btn-light {
+        @apply btn bg-white text-slate-900 shadow-lg shadow-slate-950/15 hover:bg-slate-100 focus:ring-slate-200;
+    }
+    .btn-neutral {
+        @apply btn border border-slate-200/70 bg-slate-50 text-slate-900 hover:bg-slate-100 focus:ring-slate-200;
+    }
+    .btn-success {
+        @apply btn border border-emerald-200 bg-emerald-50/90 text-emerald-700 hover:bg-emerald-100 focus:ring-emerald-200;
+    }
+    .btn-danger {
+        @apply btn bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 text-white shadow-lg shadow-rose-500/30 hover:from-rose-400 hover:to-orange-400 focus:ring-rose-400;
+    }
+    .form-input {
+        @apply w-full rounded-2xl border border-slate-200/80 bg-white/90 text-slate-900 shadow-sm focus:border-cyan-400 focus:ring focus:ring-cyan-200/60;
+    }
+    .form-select {
+        @apply w-full rounded-2xl border border-slate-200/80 bg-white/90 text-slate-900 shadow-sm focus:border-cyan-400 focus:ring focus:ring-cyan-200/60;
+    }
+    .table-modern {
+        @apply min-w-full text-sm text-slate-700;
+    }
+    .table-modern thead {
+        @apply bg-slate-900 text-white;
+    }
+    .table-modern th {
+        @apply px-4 py-3 text-left font-semibold uppercase tracking-wider text-xs;
+    }
+    .table-modern td {
+        @apply px-4 py-3 border-t border-slate-200/60;
+    }
+    .table-modern tbody tr:hover {
+        @apply bg-slate-50/80;
+    }
+    .sidebar-link {
+        @apply flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-white/80 transition duration-200 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/40 focus:ring-offset-2 focus:ring-offset-slate-950;
+    }
+    .sidebar-link-active {
+        @apply bg-white/15 text-white shadow-[0_12px_30px_rgba(14,116,144,0.35)];
+    }
+    .nav-pill {
+        @apply inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/80 hover:text-white hover:bg-white/20 transition focus:outline-none focus:ring-2 focus:ring-cyan-400/40;
+    }
+}
+
+@layer utilities {
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-12px);
+        }
+    }
+    @keyframes pulse-soft {
+        0%, 100% {
+            opacity: 0.6;
+        }
+        50% {
+            opacity: 1;
+        }
+    }
+    .animate-float {
+        animation: float 7s ease-in-out infinite;
+    }
+    .animate-pulse-soft {
+        animation: pulse-soft 4s ease-in-out infinite;
     }
 }
