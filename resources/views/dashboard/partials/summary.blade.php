@@ -154,8 +154,8 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h3 class="text-lg font-semibold">Vehículos atendidos</h3>
         </div>
-        <script type="application/json" id="dashboard-chart-labels">@json($vehicleLabels ?? [])</script>
-        <script type="application/json" id="dashboard-chart-data">@json($vehicleData ?? [])</script>
+        <script type="application/json" id="dashboard-chart-labels">@json($vehicleChartLabels ?? [])</script>
+        <script type="application/json" id="dashboard-chart-data">@json($vehicleChartData ?? [])</script>
         <canvas
             id="dashboardChart"
             height="120"
